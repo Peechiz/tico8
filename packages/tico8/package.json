@@ -1,0 +1,16 @@
+{
+  "name": "tico8",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "tico8": "./bin/tico8.js"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./run": "./src/run.ts"
+  },
+  "dependencies": {
+    "vite": "^8.3.4"
+  }
+}
