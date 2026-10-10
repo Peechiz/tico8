@@ -44,6 +44,8 @@ later steps. Code samples are illustrative, not final signatures.
   as a config alternative. No elapsed-time argument; movement is in whole
   pixels per update.
 - If drawing falls behind, draws are skipped and updates keep their rate.
+- After a long gap, such as a background tab, the game does not
+  fast-forward: at most 5 updates run in one frame and the rest are dropped.
 
 ## Sprites
 

@@ -56,7 +56,8 @@ Every tool reads and writes the project folder, and a watcher reloads on change.
 
 ## Steps
 
-Sizes are effort, not duration.
+Sizes are effort, not duration. The working plan, cut into slices, is in
+`plan/README.md`.
 
 ### 0. Keep/toss walk through Pico-8 — done
 Output: `01-spec.md`, the console spec, including optional enhancements and
