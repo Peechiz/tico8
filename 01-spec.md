@@ -240,6 +240,29 @@ blocked by a decision above.
 - Exports that carry the project inside them, so tico8 can open a shared game
   back into an editable folder.
 
+**Dev loop**
+- A dev-only start setting ("start in level 3 with the key"), so a restart
+  lands where you are working. The cheapest of these; try it first.
+- `keep`: game state that survives a code change. One call per concern, in
+  the same file as the logic that uses it:
+  `const player = keep({ x: 20, y: 60, hp: 3 })`.
+  After a code change `keep` returns the previous object. A wrapper over
+  Vite's per-module hot data; the plugin labels each kept object from its
+  file and variable name, so renaming either resets that one object.
+  - `init` always runs, and `keep` owns its own starting values: initial
+    values go in the `keep(...)` call and kept state is never set inside
+    `init`, so re-running `init` only rebuilds what was not kept.
+  - Kept state must be plain data, since class instances keep pointing at
+    old code.
+  - Fields added by an edit are filled from the new defaults; renamed fields
+    reset.
+  - A key forces a clean restart.
+- Data-only files already survive edits to other files with no API, since
+  Vite re-runs an edited file and its importers but not what it imports.
+- Input replay on reload: record button presses since start and fast-forward
+  through them with the new code, so plain variables anywhere survive a code
+  change. Needs engine-supplied random numbers so replays repeat exactly.
+
 **Editors**
 - Hosting the sprite and map editors inside VSCode (click a PNG, get the
   pixel editor in a tab).

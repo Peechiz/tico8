@@ -75,6 +75,21 @@ flags, sounds and actions. `npm create tico8` scaffolds a project.
 This is the piece that fixes the "syncing with the IDE" complaint, so it
 comes before any editors.
 
+Tooling: Vite underneath, hidden behind the `tico8` command; games never
+write a Vite config. tico8 is a Vite plugin that watches the asset folders
+and writes the typed references as real files on disk, so VSCode sees them.
+Vite compiles TS and JSX but does not type-check; VSCode and a `tsc` run
+before export cover that. Vitest tests the engine itself, where drawing into
+a pixel buffer is easy to check exactly.
+
+What reload means:
+- Assets swap live: save a PNG or map and the running game shows it without
+  restarting.
+- Code changes restart the game: saving a `.ts` file re-runs `init`.
+- Keeping game state across a code change is left out at first; decide from
+  the experience of building a real game on it (see "Optional enhancements"
+  in the spec).
+
 ### 3. Asset formats — small, but decision-heavy
 What a project looks like on disk: sprite sheets as indexed PNGs with a
 per-sheet cell size, maps with named layers as diffable text, tile flags
