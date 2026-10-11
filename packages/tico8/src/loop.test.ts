@@ -115,3 +115,23 @@ describe('createLoop', () => {
     expect(calls).toEqual(['u', 'd'])
   })
 })
+
+it('calls onUpdate before every update', () => {
+  const order: string[] = []
+  const loop = createLoop(
+    { update: () => order.push('update') },
+    { rate: 30, onUpdate: () => order.push('sample') },
+  )
+  loop.tick(0)
+  loop.tick(100)
+  expect(order).toEqual([
+    'sample',
+    'update',
+    'sample',
+    'update',
+    'sample',
+    'update',
+    'sample',
+    'update',
+  ])
+})

@@ -8,6 +8,8 @@ export interface Game {
 export interface LoopOptions {
   /** Updates per second. */
   rate: number
+  /** Called before each `update`, to sample input. */
+  onUpdate?(): void
   /** Called after each `draw`, to put the screen in front of the player. */
   onDraw?(): void
 }
@@ -34,6 +36,7 @@ export function createLoop(game: Game, options: LoopOptions): Loop {
       started = true
       base = now
       game.init?.()
+      options.onUpdate?.()
       game.update?.()
       game.draw?.()
       options.onDraw?.()
@@ -47,7 +50,10 @@ export function createLoop(game: Game, options: LoopOptions): Loop {
 
     const run = Math.min(behind, MAX_CATCH_UP)
     steps = due
-    for (let i = 0; i < run; i++) game.update?.()
+    for (let i = 0; i < run; i++) {
+      options.onUpdate?.()
+      game.update?.()
+    }
     game.draw?.()
     options.onDraw?.()
   }
