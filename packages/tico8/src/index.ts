@@ -3,6 +3,8 @@ import type { Input } from './input.ts'
 import type { Rect, Shape } from './shapes.ts'
 import { createShapes, drawLine, fillShape, strokeShape } from './shapes.ts'
 import type { Swap } from './sprites.ts'
+import { FONT } from './text/font.ts'
+import { createText } from './text/text.ts'
 import type { Vec } from './vec.ts'
 
 export type { Button, ButtonName, Input } from './input.ts'
@@ -17,6 +19,14 @@ export type {
   Shape,
 } from './shapes.ts'
 export type { DrawOptions, Sheet, Sprite, Swap } from './sprites.ts'
+export type {
+  Align,
+  DrawnLabel,
+  Label,
+  Size,
+  TextLook,
+  TextOptions,
+} from './text/types.ts'
 export { type Vec, vec } from './vec.ts'
 
 type Point = Readonly<Vec>
@@ -89,6 +99,23 @@ export interface Line {
 export function line({ from, to, color }: Readonly<Line>): void {
   drawLine(display, from.x, from.y, to.x, to.y, color)
 }
+
+/**
+ * Pixel text in the built-in font, 6 pixels to a line. `text` draws once:
+ *
+ *     text(`Score ${score}`, { x: 2, y: 2, color: COLOR.white })
+ *
+ * `label` makes text that holds its place and look, as a shape does:
+ *
+ *     const title = label({ x: 64, y: 40, text: 'Game Over', align: 'center' })
+ *     title.draw()
+ *
+ * `y` is the top of the first line and `\n` starts another. `align` is
+ * `'left'`, `'center'` or `'right'` about `x`. `text.measure(string)` gives
+ * a text's size, and `title.bounds` the rect a label covers. Symbols are
+ * typed straight in: `'♥ 3  ● 12'`.
+ */
+export const { text, label } = createText(display, FONT)
 
 /**
  * Draw the world through a camera: everything `draw` draws is moved so
