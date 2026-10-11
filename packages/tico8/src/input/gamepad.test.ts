@@ -20,6 +20,7 @@ interface Spec {
   down?: readonly number[]
   values?: Record<number, number>
   axes?: number[]
+  id?: string
 }
 
 function gamepad(spec: Spec = {}) {
@@ -29,7 +30,7 @@ function gamepad(spec: Spec = {}) {
   }))
   return {
     index: spec.index ?? 0,
-    id: 'fake pad',
+    id: spec.id ?? 'fake pad',
     mapping: spec.mapping ?? 'standard',
     connected: spec.connected ?? true,
     buttons,
@@ -110,6 +111,33 @@ describe('attachGamepads', () => {
     t.show([gamepad({ connected: false })])
     t.gamepads.poll()
     expect(t.only('releaseAll')).toEqual([['releaseAll', 'gamepad0']])
+  })
+
+  it('reads a PS5 controller that Firefox gives no layout', () => {
+    const id = '054c-0df2-DualSense Edge Wireless Controller'
+    const raw = (down: number[], hat: number) =>
+      gamepad({ id, mapping: '', down, axes: [0, 0, 0, 0, 0, 0, hat] })
+    const t = setup([raw([1, 0, 5], 1.29)])
+    t.gamepads.poll()
+    // Cross is button 1 and square button 0.
+    expect(t.only('set').map((c) => c[2])).toEqual(['x', 'a', 'r1'])
+
+    // The d-pad is one axis: up, then down and left together, then rest.
+    const dpad = (hat: number) => {
+      t.calls.length = 0
+      t.show([raw([], hat)])
+      t.gamepads.poll()
+      return t.only('set').map((c) => [c[2], c[3]])
+    }
+    dpad(1.29)
+    expect(dpad(-1)).toEqual([['up', true]])
+    expect(dpad(0.43)).toEqual([
+      ['down', true],
+      ['left', true],
+      ['up', false],
+    ])
+    expect(dpad(0.71)).toEqual([['down', false]])
+    expect(dpad(1.29)).toEqual([['left', false]])
   })
 
   it('ignores a non-standard controller and says so once', () => {
