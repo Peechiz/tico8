@@ -28,7 +28,7 @@ export function createScreen(width: number, height: number): Screen {
 }
 
 /** Write the screen as RGBA bytes into `out` (width * height * 4 long). */
-export function toRGBA(
+export function toRgba(
   screen: Screen,
   palette: Palette,
   out: Uint8ClampedArray,

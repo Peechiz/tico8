@@ -75,8 +75,16 @@ examples/demo/      the game every slice adds to
 - **Lint and format:** Biome, added after the slice closed. `pnpm lint`
   reports, `pnpm check` fixes. The non-null `!` rule is off, since strict
   index checks make `!` routine in pixel loops.
-- **Names:** `screen.width` / `screen.height`, `clear(color = 0)`,
+- **Names:** `SCREEN.width` / `SCREEN.height`, `clear(color = 0)`,
   `pixel(x, y, color)`. A game's exports are typed by `Game`.
+- **Naming:** fixed tables of values are upper-case (`SCREEN`, `COLOR`); the
+  rule is in the spec's "Naming".
+- **Colour names:** added after the slice closed. `COLOR.red` and the other
+  fifteen Pico-8 names, each a palette index. Slice 05 generates them from
+  the project's palette instead.
+- **Vectors:** added after the slice closed. `vec` in `src/vec.ts`, and
+  `pixel` takes a position as `x, y` or as one value. The rule is in the
+  spec's "Positions and vectors".
 - **Drawing off screen:** ignored. Fractional positions are floored. A colour
   outside 0-15 wraps.
 - **Catching up:** after a long gap the loop runs at most 5 updates in one

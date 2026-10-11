@@ -17,7 +17,9 @@ test that checks the pixel buffer.
    `plan/01-skeleton.md`. Done when every task names the files it owns and the
    tasks it waits on, and no two tasks own the same file.
 3. **Contract first.** Do the task marked *contract* alone: it fixes the
-   exported types the other tasks build against.
+   exported types the other tasks build against. Names follow
+   "Naming" in `01-spec.md`, and every function that takes or returns a
+   position follows "Positions and vectors".
 4. **Fan out.** Give each remaining task whose waits are ticked to its own
    subagent, in parallel. A task is done when its test passes and its box is
    ticked in the slice file.

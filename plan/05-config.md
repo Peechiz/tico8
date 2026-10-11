@@ -4,7 +4,7 @@ Stub. Detail the tasks before starting (see `../AGENTS.md`, step 2).
 
 ## Demo
 
-The demo's config file sets 160x144, a replaced palette and 60 updates per second, and the game follows without code changes.
+The demo's config file sets 160x144, a replaced palette with its own colour names and 60 updates per second, and the game follows without code changes.
 
 ## Spec
 
@@ -14,12 +14,17 @@ The demo's config file sets 160x144, a replaced palette and 60 updates per secon
 
 - The config file's name and form (a typed `.ts` file or JSON).
 - Whether a config change swaps live or restarts the game.
+- Where generated colour names are imported from (`tico8`, or a `colors.ts`
+  in the project like sheets and maps).
 
 ## Task areas
 
 - Config type and loader
 - Screen presets
 - Palette replacement, including how PNGs are matched against it
+- Colour names declared with the palette and generated as typed references,
+  replacing the fixed `COLOR` object the engine ships (see "Colour names" in
+  the spec)
 - Update rate
 - Reload on config change
 

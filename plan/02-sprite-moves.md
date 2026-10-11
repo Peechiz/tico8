@@ -13,7 +13,8 @@ import a type error in VSCode.
 
 ## Spec
 
-`01-spec.md`: Sprites; Input (the standard pad on keyboard only).
+`01-spec.md`: Sprites; Input (the standard pad on keyboard only); Positions
+and vectors.
 `00-outline.md`: step 2, "What reload means".
 
 Left for later slices: named actions, controllers and mouse (06); changing a

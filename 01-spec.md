@@ -17,6 +17,19 @@ later steps. Code samples are illustrative, not final signatures.
   same files; assets are editable in external tools and diff in git.
 - **What keeps games small** is the screen and the palette, not a size limit.
 
+## Naming
+
+These rules cover the API a game sees. Engine and tooling internals are
+free to differ.
+
+- **`UPPER_CASE` for fixed tables of values:** things that only hold values
+  and never change while the game runs, such as `SCREEN.width` and
+  `COLOR.red`. Their fields stay lower-case.
+- **`lowerCase` for everything else:** functions (`clear`, `pixel`, `vec`),
+  and anything with behaviour or live state, such as a sheet (`player`), a
+  map (`room1`) or `input`.
+- **`PascalCase` for types** (`Vec`, `Game`).
+
 ## Platform
 
 | | Decision |
@@ -32,9 +45,10 @@ later steps. Code samples are illustrative, not final signatures.
 
 | | Decision |
 |---|---|
-| Resolution | 128x128 standard. Opt-in presets: 160x144 and 240x136, set once in project config. Game code uses screen width/height values, never a hardcoded 128. |
+| Resolution | 128x128 standard. Opt-in presets: 160x144 and 240x136, set once in project config. Game code uses `SCREEN.width` and `SCREEN.height`, never a hardcoded 128. |
 | Colour model | Indexed, 16 colours on screen. The engine draws into its own pixel buffer. |
 | Palette | A project may replace the 16 colours. New projects start with Pico-8's palette. |
+| Colour names | Colours are passed by name (`COLOR.red`), not as bare numbers. Each name is a palette index, so a number still works and colour arithmetic stays possible. The names are declared with the palette in project config and generated as typed references; until config exists the engine ships Pico-8's sixteen names. |
 
 ## Game loop
 
@@ -127,6 +141,27 @@ outlined), camera offset, clip rectangle, palette swap, pixel text.
 
 Replaces Pico-8's memory tricks with ordinary typed functions: read a screen
 pixel, change a sprite's pixels at run time, change a map cell.
+
+## Positions and vectors
+
+- **Every position can be one value.** Wherever a function takes `x, y` it
+  also takes one object with `x` and `y` fields: `hero.draw(player.pos)`, or
+  `hero.draw(player)` if `player` is `{ x, y, hp }`. The `x, y` form stays.
+- **The engine reports positions the same way:** mouse position, marker tiles
+  on a map layer and the like come back as `{ x, y }`.
+- **A vector is plain data,** `{ x, y }`, made with `vec(x, y)`. It has no
+  methods, so it saves, compares and survives a code reload like any other
+  game state.
+- **The maths is functions on `vec`:** `add`, `sub`, `scale`, `len`,
+  `distance`, `normalize`, each returning a new value, and `move`, which adds
+  in place.
+
+```ts
+const player = { pos: vec(20, 60), vel: vec(1, 0) }
+
+vec.move(player.pos, player.vel)   // update
+hero.draw(player.pos)              // draw
+```
 
 ## Text and UI
 

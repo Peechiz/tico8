@@ -1,0 +1,48 @@
+/** A position or direction. Any object with `x` and `y` counts as one. */
+export interface Vec {
+  x: number
+  y: number
+}
+
+type ReadonlyVec = Readonly<Vec>
+
+/**
+ * Make a vector: plain data, so it can be saved and compared as is.
+ * The maths lives on `vec` itself: `vec.add(a, b)`, `vec.len(a)`, ...
+ */
+export const vec = Object.assign((x = 0, y = 0): Vec => ({ x, y }), {
+  /** A new vector, `a + b`. */
+  add: (a: ReadonlyVec, b: ReadonlyVec): Vec => ({
+    x: a.x + b.x,
+    y: a.y + b.y,
+  }),
+
+  /** A new vector, `a - b`: the way from `b` to `a`. */
+  sub: (a: ReadonlyVec, b: ReadonlyVec): Vec => ({
+    x: a.x - b.x,
+    y: a.y - b.y,
+  }),
+
+  /** A new vector, `a` made `n` times as long. */
+  scale: (a: ReadonlyVec, n: number): Vec => ({ x: a.x * n, y: a.y * n }),
+
+  /** How long `a` is. */
+  len: (a: ReadonlyVec): number => Math.hypot(a.x, a.y),
+
+  /** How far apart `a` and `b` are. */
+  distance: (a: ReadonlyVec, b: ReadonlyVec): number =>
+    Math.hypot(a.x - b.x, a.y - b.y),
+
+  /** A new vector pointing the way `a` does, of length 1. Zero stays zero. */
+  normalize: (a: ReadonlyVec): Vec => {
+    const n = Math.hypot(a.x, a.y)
+    return n === 0 ? { x: 0, y: 0 } : { x: a.x / n, y: a.y / n }
+  },
+
+  /** Add `by` to `a` in place, and return `a`. Nothing new is made. */
+  move: <T extends Vec>(a: T, by: ReadonlyVec): T => {
+    a.x += by.x
+    a.y += by.y
+    return a
+  },
+})

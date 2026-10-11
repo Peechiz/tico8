@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PICO8 } from './palette.ts'
-import { createScreen, toRGBA } from './screen.ts'
+import { createScreen, toRgba } from './screen.ts'
 import { picture, toPicture } from './testing.ts'
 
 describe('screen', () => {
@@ -97,7 +97,7 @@ describe('screen', () => {
     const s = createScreen(2, 1)
     s.pixel(1, 0, 8)
     const out = new Uint8ClampedArray(2 * 4)
-    toRGBA(s, PICO8, out)
+    toRgba(s, PICO8, out)
     expect([...out]).toEqual([0, 0, 0, 255, 255, 0, 77, 255])
   })
 })

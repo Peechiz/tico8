@@ -1,18 +1,19 @@
-import { clear, pixel, screen } from 'tico8'
+import { COLOR, clear, pixel, SCREEN, vec } from 'tico8'
 
-let x = 0
-let y = 0
+const dot = vec()
+const speed = vec(1, 0)
 
 export function init() {
-  x = 0
-  y = screen.height / 2
+  dot.x = 0
+  dot.y = SCREEN.height / 2
 }
 
 export function update() {
-  x = (x + 1) % screen.width
+  vec.move(dot, speed)
+  dot.x %= SCREEN.width
 }
 
 export function draw() {
-  clear(1)
-  pixel(x, y, 8)
+  clear(COLOR.darkBlue)
+  pixel(dot, COLOR.red)
 }

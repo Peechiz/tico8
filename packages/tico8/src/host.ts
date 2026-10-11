@@ -1,6 +1,6 @@
 import type { Palette } from './palette.ts'
 import type { Screen } from './screen.ts'
-import { toRGBA } from './screen.ts'
+import { toRgba } from './screen.ts'
 
 export interface Host {
   /** Copy the screen's pixels to the canvas. */
@@ -63,7 +63,7 @@ export function mount(
 
   return {
     present() {
-      toRGBA(screen, palette, image.data)
+      toRgba(screen, palette, image.data)
       context.putImageData(image, 0, 0)
     },
     destroy() {
