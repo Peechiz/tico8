@@ -1,10 +1,10 @@
 import { clear, fill, input, rect, SCREEN, stroke, text } from 'tico8'
-import { COLOR } from './palette'
 import { wisp } from './sprites'
+import { COLOR } from './tico8.config'
 
 // Nothing here knows the screen's size or how many colours there are. The
-// size comes from tico8.config.ts and the colours from palette.ts, so
-// changing either rearranges all of this.
+// size and the colours both come from tico8.config.ts, so changing either
+// rearranges all of this.
 const edge = 2
 const line = text.measure('A').height + edge * 2
 
