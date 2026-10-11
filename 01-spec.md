@@ -11,6 +11,13 @@ later steps. Code samples are illustrative, not final signatures.
   config; everything else is fixed.
 - **Pico-8 supplies capabilities, TypeScript supplies the API.** No signature
   is kept just because Pico-8 has it.
+- **The API leans modern and convenient.** The goal is that writing a game is
+  not a chore, not that the functions are as low-level as possible or teach
+  how things work underneath. Where Pico-8 makes every game rebuild
+  something (vectors, hitboxes, an entity class, palette juggling), tico8
+  ships it. When a choice is between a primitive and the thing games
+  actually want, take the second, and look to engines such as Godot for the
+  pattern before copying Pico-8's.
 - **Nothing is drawn behind your back.** `draw` is a plain list of what gets
   drawn, in order. No scene graph, no depth sorting, no engine-owned objects.
 - **The project is a folder of plain files.** Every tool reads and writes the
@@ -31,6 +38,12 @@ free to differ.
   and anything with behaviour or live state, such as a sheet (`player`), a
   map (`room1`) or `input`.
 - **`PascalCase` for types** (`Vec`, `Game`).
+- **No long runs of bare numbers.** A call takes at most an `x, y` pair and
+  one more argument: `vec(3, 4)`, `hero.draw(x, y)`, `pixel(x, y, color)`.
+  Anything needing more is one object of named fields:
+  `rect({ x, y, width, height })`, `line({ from, to, color })`,
+  `tiles.draw({ frame, x, y })`. Optional settings always go in such an
+  object, never in trailing positional arguments.
 
 ## Platform
 
@@ -74,9 +87,10 @@ free to differ.
 - Sheets are **typed references generated from the folder** by the dev tool, so
   a missing sheet is a compile error and names autocomplete.
 - A **sprite instance** is made from a sheet and holds its own appearance
-  (frame, flip). Position is passed when drawing. The engine never draws it
+  (frame, flip, colour swap, flash). Position is passed when drawing. The engine never draws it
   for you.
-- A stateless one-off draw stays available for tiles and particles.
+- A stateless one-off draw stays available for tiles and particles:
+  `tiles.draw({ frame: 3, x: 16, y: 8 })`.
 - Transparency comes from the PNG itself: a pixel less than half opaque is
   see-through.
 
@@ -141,16 +155,51 @@ if (input.jump.pressed) { /* ... */ }
 
 ## Drawing
 
-Kept from Pico-8: shapes (dots, lines, rectangles, circles, ovals, filled or
-outlined), camera offset, clip rectangle, palette swap, pixel text.
+- **Shapes are values.** `rect({ x, y, width, height })`,
+  `circle({ x, y, radius })` and `oval({ x, y, radiusX, radiusY })` make
+  plain data, and a bare object with those fields works just as well.
+  `fill(shape, color)` and `outline(shape, color)` draw any of them, and
+  `line({ from, to, color })` stands alone. A game's own object with the right fields is a shape, so
+  `outline(player, COLOR.green)` draws the player's bounds.
+- **The same values test for hits:** `rect.overlaps(a, b)` and
+  `rect.contains(r, point)`.
+- **Camera and clip are blocks.** `camera(cam, () => { ... })` draws the
+  block through a camera; what is drawn outside it, such as a HUD, is
+  untouched. `clip(area, () => { ... })` limits the block to a rectangle.
+  Nothing is set, so nothing needs resetting. Blocks nest: cameras add up
+  and clips narrow.
+- **Recolouring belongs to what is drawn.** A sprite has `swap`, a plain
+  object naming which colours are drawn as which, and `flash`, one colour
+  for every pixel. One-off sheet draws take both as options. There is no
+  global draw-time palette swap.
+- **Whole-frame swap:** `screenSwap(swap)` shows some colours as others
+  across the finished frame, for fades. It lasts for the frame it is called
+  in.
+- **Pixels:** `pixel(x, y, color)` sets one and `pixel(x, y)` reads one.
+  `sheet.pixel({ frame, x, y })` reads a sprite sheet's pixel at run time,
+  adding `color` writes it, and `sheet.erase` makes one see-through.
+- Pixel text is in "Text and UI".
 
-Replaces Pico-8's memory tricks with ordinary typed functions: read a screen
-pixel, change a sprite's pixels at run time, change a map cell.
+```ts
+const cam = vec()
+const hud = rect({ x: 0, y: 0, width: SCREEN.width, height: 9 })
+const icy = { [COLOR.red]: COLOR.blue }
+
+export function draw() {
+  clear(COLOR.darkBlue)
+  camera(cam, () => {
+    fill(circle({ x: 200, y: 30, radius: 12 }), COLOR.yellow)
+    hero.swap = frozen ? icy : undefined
+    hero.draw(pos)
+  })
+  fill(hud, COLOR.black)
+}
+```
 
 ## Positions and vectors
 
-- **Every position can be one value.** Wherever a function takes `x, y` it
-  also takes one object with `x` and `y` fields: `hero.draw(player.pos)`, or
+- **Every position can be one value.** Wherever a function takes `x, y` as
+  arguments it also takes one object with `x` and `y` fields: `hero.draw(player.pos)`, or
   `hero.draw(player)` if `player` is `{ x, y, hp }`. The `x, y` form stays.
 - **The engine reports positions the same way:** mouse position, marker tiles
   on a map layer and the like come back as `{ x, y }`.
