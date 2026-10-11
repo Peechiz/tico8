@@ -218,8 +218,10 @@ if (room1.walls.tile(tx, ty).solid) { /* blocked */ }
   a mouse button whose switch is off, is refused by name like any other
   bad setting.
 - **Sticks** are `input.leftStick` and `input.rightStick`, each a vector no
-  longer than 1 with a round dead zone. A controller without the browser's
-  standard layout is ignored, with a warning in the console.
+  longer than 1 with a round dead zone. A controller is read through the
+  browser's standard layout, or through a layout tico8 keeps for it when
+  the browser gives none (a PS5 controller in Firefox). One with neither
+  is ignored, with a warning in the console.
 - **`input.mouse` is itself the position,** with `left`, `right`, `middle`
   and `inside` beside `x` and `y`. It keeps counting past the screen's
   edges, so check `inside`. The system pointer stays visible.

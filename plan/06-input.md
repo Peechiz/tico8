@@ -172,6 +172,13 @@ stays down while any device holds it.
   the page like any config change, where saving `palette.ts` used to
   restart the game alone. A bad palette is now refused in the terminal by
   name, like any other setting.
+- **tico8 keeps layouts for controllers a browser gives none.** Added
+  after the slice closed, when a DualSense Edge did nothing in Firefox,
+  which reports it with an empty `mapping`: square is button 0, and the
+  d-pad is one axis running from -1 at up through eight positions. The
+  layout is found by vendor and product in the controller's id and covers
+  the DualSense and the Edge. A controller with no standard layout and no
+  kept one is still ignored with a warning, not guessed at.
 
 ## Not checked
 
@@ -186,3 +193,6 @@ stays down while any device holds it.
   watched frame by frame.
 - Editing a colour in example 05's config and watching the page reload.
   The example was seen running with its palette after the move.
+- The PS5 layout's triggers, stick clicks, start and select, which follow
+  the controller's usual order and were not pressed, and the plain
+  DualSense, which is taken to match the Edge that was measured.
