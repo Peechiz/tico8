@@ -11,7 +11,7 @@ Slices whose "needs" are all `done` can run in parallel.
 | 02 | [Sprite moves](02-sprite-moves.md) | 01 | medium | done | A PNG sprite moved with the arrow keys; repainting the PNG shows up live |
 | 03 | [Drawing](03-drawing.md) | 02 | medium | done | Shapes, camera, clip and palette swap in the demo |
 | 04 | [Text](04-text.md) | 02 | small | done | A score drawn in the pixel font |
-| 05 | [Config](05-config.md) | 02 | small | todo | The demo switched to 160x144 with its own palette |
+| 05 | [Config](05-config.md) | 02 | small | done | The demo switched to 160x144 with its own palette |
 | 06 | [Input](06-input.md) | 05 | medium | todo | Jump on a named action, from keyboard and controller |
 | 07 | [Maps](07-maps.md) | 02 | medium | todo | A room with layers the sprite walks between and solid walls |
 | 08 | [Audio](08-audio.md) | 02 | small | todo | A sound played on a button press |
