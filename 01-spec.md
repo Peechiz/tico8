@@ -62,9 +62,12 @@ free to differ.
   `main.ts`. It is typed, so settings autocomplete and a wrong one is an
   error in the editor. A project without the file is the standard console.
 - **It holds the short list of overrides** and nothing else: screen size,
-  update rate and the off-palette warning. Later slices add input actions
-  and extras. The palette is not here: it is declared in game code (see
-  "Screen and colour").
+  update rate, the palette and the off-palette warning, input actions,
+  extras and the mouse.
+- **`defineConfig` hands back the config with the game's typed names on
+  it:** `COLOR` for its palette and `input` for its actions. The config
+  file exports them and game code imports them from there. Nothing is
+  generated.
 - **Saving it restarts the game** by reloading the page. Game state is
   lost.
 - **A setting that cannot be used is refused** with a message naming it in
@@ -74,11 +77,16 @@ free to differ.
 ```ts
 import { defineConfig } from 'tico8/config'
 
-export default defineConfig({
+const config = defineConfig({
   screen: '160x144',
   rate: 60,
   warnOffPalette: true,
+  palette: { ink: '#1b1b2f', moss: '#3a5a40' },
+  actions: { jump: ['a', 'Space'] },
 })
+
+export default config
+export const { COLOR, input } = config
 ```
 
 ## Screen and colour
@@ -88,27 +96,31 @@ export default defineConfig({
 | Resolution | 128x128 standard. Opt-in presets: 160x144 and 240x136, set once in project config as `screen: '160x144'`. Game code uses `SCREEN.width` and `SCREEN.height`, never a hardcoded 128. |
 | Colour model | Indexed. The engine draws into its own pixel buffer of colour numbers, which is what makes palette swap possible. |
 | Imported art | A PNG keeps the colours it was painted in. A colour outside the palette gets a number of its own after the palette's, with no name. The screen can show 255 colours at once; past that a new colour takes the nearest existing one, and the dev tool always warns. A PNG pixel belongs to the palette only if its colour matches exactly. A warning for any colour outside the palette is an opt-in config setting, `warnOffPalette`. |
-| Palette | 16 colours by default, Pico-8's. A game replaces them, or defines more, with `palette({ name: '#hex', ... })`, written once in a file of its own. The colours are numbered in the order written, a colour is `#rrggbb` or `#rgb`, and a palette holds 1 to 255. The palette is what the built-in sprite editor offers and what `COLOR` names. |
-| Colour names | Colours are passed by name (`COLOR.red`), not as bare numbers. Each name is a palette index, so a number still works and colour arithmetic stays possible. `tico8` exports `COLOR` with Pico-8's sixteen names. `palette(...)` returns the same kind of object for the game's own colours, which the game exports as its `COLOR`; the names are typed from what was written, so one not in the palette is a compile error and nothing is generated. |
+| Palette | 16 colours by default, Pico-8's. A game replaces them, or defines more, with `palette: { name: '#hex', ... }` in its config. The colours are numbered in the order written, a colour is `#rrggbb` or `#rgb`, and a palette holds 1 to 255. The palette is what the built-in sprite editor offers and what `COLOR` names. |
+| Colour names | Colours are passed by name (`COLOR.red`), not as bare numbers. Each name is a palette index, so a number still works and colour arithmetic stays possible. `tico8` exports `COLOR` with Pico-8's sixteen names. A game with its own palette gets its `COLOR` back from `defineConfig` and exports it from the config file; the names are typed from what was written, so one not in the palette is a compile error and nothing is generated. |
 
 ```ts
-// palette.ts
-import { palette } from 'tico8'
-
-export const COLOR = palette({
-  ink: '#1b1b2f',
-  moss: '#3a5a40',
-  sand: '#e9c46a',
+// tico8.config.ts
+const config = defineConfig({
+  palette: {
+    ink: '#1b1b2f',
+    moss: '#3a5a40',
+    sand: '#e9c46a',
+  },
 })
+export default config
+export const { COLOR } = config
 
 // main.ts
-import { COLOR } from './palette'
+import { COLOR } from './tico8.config'
 
 clear(COLOR.moss)
 ```
 
-Saving the palette file restarts the game like any code change, and sprites
-are matched to the new colours.
+Saving a new palette reloads the page, as any config change does, and
+sprites are matched to the new colours. The palette cannot be replaced
+while the game runs; `screenSwap` and a sprite's recolouring cover fades
+and flashes.
 
 ## Game loop
 
@@ -178,22 +190,55 @@ if (room1.walls.tile(tx, ty).solid) { /* blocked */ }
 ## Input
 
 - Standard pad: **4 directions and 4 buttons**, working with no setup on
-  keyboard and real controllers.
-- Extras (shoulder buttons, sticks, start/select) are switched on in config.
-- Games check **named actions** defined in config and bound to controller
-  buttons or keyboard keys. Action names are typed. A game that defines none
-  can use the four buttons directly.
-- **Mouse** is off unless a game turns it on; then it reports position in game
-  pixels plus buttons.
+  keyboard and real controllers. On the keyboard the arrows are the
+  directions and A, S, W and D are `a`, `b`, `x` and `y`. On a controller
+  `a` is the bottom face button and `b` the right one, by position, not by
+  the letter printed on it; the d-pad and the left stick both give the
+  directions.
+- Extras (shoulder buttons, triggers, sticks, start/select) are switched on
+  in config with `extras: true`.
+- Games check **named actions** defined in config. An action is bound to a
+  pad button, a keyboard key, a mouse button, or a list of them. A pad
+  button brings its default key with it. Keys are named as the browser
+  names them, by place on the keyboard: `'Space'`, `'KeyK'`.
+- **Action names are typed by inference.** `defineConfig` hands back the
+  config with the game's `input` on it; the config file exports that and
+  the game imports it from there. Nothing is generated. A game that
+  defines no actions imports the plain pad from `tico8`.
+- **A key named in an action stops being a default key of the pad,** so a
+  game can take A, S, W and D for its own use.
+- **Mouse** is off unless the config says `mouse: true`; then `input.mouse`
+  is its position in game pixels plus its buttons.
+- **A button is down while anything holds it.** Letting go of a key does
+  not release a button a controller still holds. `pressed` and `released`
+  are each true for one update, and a tap that starts and ends between
+  two updates is still seen.
+- **An action is named in letters and digits** and cannot take a name
+  `input` already has. One bound to something unknown, or to an extra or
+  a mouse button whose switch is off, is refused by name like any other
+  bad setting.
+- **Sticks** are `input.leftStick` and `input.rightStick`, each a vector no
+  longer than 1 with a round dead zone. A controller without the browser's
+  standard layout is ignored, with a warning in the console.
+- **`input.mouse` is itself the position,** with `left`, `right`, `middle`
+  and `inside` beside `x` and `y`. It keeps counting past the screen's
+  edges, so check `inside`. The system pointer stays visible.
 - **No input device is ever exclusive.** Pad, keyboard and mouse are always
-  read together; tico8 never switches input modes or hides one device because
-  another was touched.
+  read together, every connected controller included; tico8 never switches
+  input modes or hides one device because another was touched.
 
 ```ts
-// project config
-actions: { jump: 'a', shoot: 'b', dash: 'r1' }
+// tico8.config.ts
+const config = defineConfig({
+  extras: true,
+  actions: { jump: 'a', shoot: ['b', 'Space'], dash: 'r1' },
+})
+export default config
+export const { input } = config
 
 // game code
+import { input } from './tico8.config'
+
 if (input.jump.pressed) { /* ... */ }
 ```
 
