@@ -10,6 +10,8 @@ export interface LoopOptions {
   rate: number
   /** Called before each `update`, to sample input. */
   onUpdate?(): void
+  /** Called before each `draw`, to start the frame clean. */
+  beforeDraw?(): void
   /** Called after each `draw`, to put the screen in front of the player. */
   onDraw?(): void
 }
@@ -38,6 +40,7 @@ export function createLoop(game: Game, options: LoopOptions): Loop {
       game.init?.()
       options.onUpdate?.()
       game.update?.()
+      options.beforeDraw?.()
       game.draw?.()
       options.onDraw?.()
       return
@@ -54,6 +57,7 @@ export function createLoop(game: Game, options: LoopOptions): Loop {
       options.onUpdate?.()
       game.update?.()
     }
+    options.beforeDraw?.()
     game.draw?.()
     options.onDraw?.()
   }

@@ -135,3 +135,14 @@ it('calls onUpdate before every update', () => {
     'update',
   ])
 })
+
+it('calls beforeDraw before every draw', () => {
+  const order: string[] = []
+  const loop = createLoop(
+    { draw: () => order.push('draw') },
+    { rate: 30, beforeDraw: () => order.push('begin') },
+  )
+  loop.tick(0)
+  loop.tick(100)
+  expect(order).toEqual(['begin', 'draw', 'begin', 'draw'])
+})

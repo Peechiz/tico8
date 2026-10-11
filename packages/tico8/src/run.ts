@@ -23,6 +23,7 @@ export function run(game: Game): () => void {
     const loop = createLoop(game, {
       rate: RATE,
       onUpdate: pad.sample,
+      beforeDraw: display.beginFrame,
       onDraw: host.present,
     })
 
