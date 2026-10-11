@@ -48,6 +48,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/tico8
 
+  examples/05-config:
+    dependencies:
+      tico8:
+        specifier: workspace:*
+        version: link:../../packages/tico8
+
   packages/tico8:
     dependencies:
       vite:
