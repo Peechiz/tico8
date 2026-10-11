@@ -24,7 +24,19 @@ importers:
         specifier: ^5.0.3
         version: 5.0.3(@types/node@26.6.5)(vite@8.3.4(@types/node@26.6.5))
 
-  examples/demo:
+  examples/01-dot:
+    dependencies:
+      tico8:
+        specifier: workspace:*
+        version: link:../../packages/tico8
+
+  examples/02-sprite:
+    dependencies:
+      tico8:
+        specifier: workspace:*
+        version: link:../../packages/tico8
+
+  examples/03-drawing:
     dependencies:
       tico8:
         specifier: workspace:*

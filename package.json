@@ -6,7 +6,7 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "dev": "pnpm --filter demo dev",
+    "dev": "node scripts/dev.js",
     "lint": "biome check",
     "check": "biome check --write"
   },
