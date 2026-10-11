@@ -13,6 +13,6 @@
     "skipLibCheck": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["packages/*/src", "examples/*"],
+  "include": ["packages/*/src", "examples"],
   "exclude": ["**/node_modules"]
 }
