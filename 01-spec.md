@@ -155,12 +155,15 @@ if (input.jump.pressed) { /* ... */ }
 
 ## Drawing
 
-- **Shapes are values.** `rect({ x, y, width, height })`,
-  `circle({ x, y, radius })` and `oval({ x, y, radiusX, radiusY })` make
-  plain data, and a bare object with those fields works just as well.
-  `fill(shape, color)` and `outline(shape, color)` draw any of them, and
-  `line({ from, to, color })` stands alone. A game's own object with the right fields is a shape, so
-  `outline(player, COLOR.green)` draws the player's bounds.
+- **Shapes are values that hold their own look.** `rect({ x, y, width,
+  height })`, `circle({ x, y, radius })` and `oval({ x, y, radiusX,
+  radiusY })` also take `fill` and `stroke` colours, and `shape.draw()`
+  draws the fill and then the one-pixel edge over it. Either colour can be
+  left out, and both can be changed later, as a sprite's `flash` can.
+- **A bare object is a shape too.** `fill(shape, color)` and
+  `stroke(shape, color)` draw anything with the right fields, so
+  `stroke(player, COLOR.green)` draws the player's bounds.
+  `line({ from, to, color })` stands alone.
 - **The same values test for hits:** `rect.overlaps(a, b)` and
   `rect.contains(r, point)`.
 - **Camera and clip are blocks.** `camera(cam, () => { ... })` draws the
@@ -183,12 +186,19 @@ if (input.jump.pressed) { /* ... */ }
 ```ts
 const cam = vec()
 const hud = rect({ x: 0, y: 0, width: SCREEN.width, height: 9 })
+const sun = circle({
+  x: 200,
+  y: 30,
+  radius: 12,
+  fill: COLOR.yellow,
+  stroke: COLOR.orange,
+})
 const icy = { [COLOR.red]: COLOR.blue }
 
 export function draw() {
   clear(COLOR.darkBlue)
   camera(cam, () => {
-    fill(circle({ x: 200, y: 30, radius: 12 }), COLOR.yellow)
+    sun.draw()
     hero.swap = frozen ? icy : undefined
     hero.draw(pos)
   })
