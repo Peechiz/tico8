@@ -1,13 +1,22 @@
-import { display } from './console.ts'
+import { display, pad } from './console.ts'
+import type { Input } from './input.ts'
 import type { Vec } from './vec.ts'
 
+export type { Button, ButtonName, Input } from './input.ts'
 export type { Game } from './loop.ts'
 export { COLOR } from './palette.ts'
+export type { DrawOptions, Sheet, Sprite } from './sprites.ts'
 export { type Vec, vec } from './vec.ts'
 
 /** The screen's size in game pixels. Use these, never a hardcoded 128. */
 export const SCREEN: { readonly width: number; readonly height: number } =
   display
+
+/**
+ * The standard pad, read from the keyboard: `input.left.held`,
+ * `input.a.pressed`, `input.dir`.
+ */
+export const input: Input = pad.input
 
 /** Fill the whole screen with one palette colour, such as `COLOR.black`. */
 export function clear(color = 0): void {

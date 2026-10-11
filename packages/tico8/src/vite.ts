@@ -1,6 +1,8 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Plugin } from 'vite'
+import { assetsHmr } from './vite/assets-hmr.ts'
+import { sprites } from './vite/sprites.ts'
 
 /** The project file that exports `init`, `update` and `draw`. */
 const mainFile = 'main.ts'
@@ -54,7 +56,11 @@ if (import.meta.hot) {
 `
 
 /** Everything `tico8 dev` adds to Vite for a project folder. */
-export function tico8(): Plugin {
+export function tico8(): Plugin[] {
+  return [core(), sprites(), assetsHmr()]
+}
+
+function core(): Plugin {
   return {
     name: 'tico8',
 

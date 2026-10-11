@@ -8,7 +8,8 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./run": "./src/run.ts"
+    "./run": "./src/run.ts",
+    "./assets": "./src/assets/sheets.ts"
   },
   "dependencies": {
     "vite": "^8.3.4"

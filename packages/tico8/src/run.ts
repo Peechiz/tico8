@@ -1,24 +1,45 @@
-import { display, palette, RATE } from './console.ts'
+import { ready } from './assets/sheets.ts'
+import { display, pad, palette, RATE } from './console.ts'
 import { mount } from './host.ts'
+import { attachKeyboard } from './input.ts'
 import type { Game } from './loop.ts'
 import { createLoop } from './loop.ts'
 
 /**
- * Start a game in the page. Returns a function that stops it and removes
- * it from the page, so a code change can start the new version cleanly.
+ * Start a game in the page once its assets have loaded. Returns a function
+ * that stops it and removes it from the page, so a code change can start
+ * the new version cleanly.
  */
 export function run(game: Game): () => void {
-  display.clear()
-  const host = mount(document.body, display, palette)
-  const loop = createLoop(game, { rate: RATE, onDraw: host.present })
+  let stop = () => {}
+  let stopped = false
 
-  let frame = requestAnimationFrame(function step(now) {
-    frame = requestAnimationFrame(step)
-    loop.tick(now)
+  ready().then(() => {
+    if (stopped) return
+    display.clear()
+    pad.releaseAll()
+    const host = mount(document.body, display, palette)
+    const detach = attachKeyboard(window, pad)
+    const loop = createLoop(game, {
+      rate: RATE,
+      onUpdate: pad.sample,
+      onDraw: host.present,
+    })
+
+    let frame = requestAnimationFrame(function step(now) {
+      frame = requestAnimationFrame(step)
+      loop.tick(now)
+    })
+
+    stop = () => {
+      cancelAnimationFrame(frame)
+      detach()
+      host.destroy()
+    }
   })
 
   return () => {
-    cancelAnimationFrame(frame)
-    host.destroy()
+    stopped = true
+    stop()
   }
 }
