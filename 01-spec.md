@@ -56,15 +56,59 @@ free to differ.
 | Boundaries | tico8 owns the screen, input, sound and save storage. Reaching into the browser directly is unsupported, apart from the UI layer below. |
 | Limits | None beyond screen and palette: no token limit, no size cap, no per-frame CPU budget. Export reports the file size as information. |
 
+## Project config
+
+- **One optional file, `tico8.config.ts`,** in the project folder beside
+  `main.ts`. It is typed, so settings autocomplete and a wrong one is an
+  error in the editor. A project without the file is the standard console.
+- **It holds the short list of overrides** and nothing else: screen size,
+  update rate and the off-palette warning. Later slices add input actions
+  and extras. The palette is not here: it is declared in game code (see
+  "Screen and colour").
+- **Saving it restarts the game** by reloading the page. Game state is
+  lost.
+- **A setting that cannot be used is refused** with a message naming it in
+  the dev tool's terminal. The game does not start on a half-applied
+  config.
+
+```ts
+import { defineConfig } from 'tico8/config'
+
+export default defineConfig({
+  screen: '160x144',
+  rate: 60,
+  warnOffPalette: true,
+})
+```
+
 ## Screen and colour
 
 | | Decision |
 |---|---|
-| Resolution | 128x128 standard. Opt-in presets: 160x144 and 240x136, set once in project config. Game code uses `SCREEN.width` and `SCREEN.height`, never a hardcoded 128. |
+| Resolution | 128x128 standard. Opt-in presets: 160x144 and 240x136, set once in project config as `screen: '160x144'`. Game code uses `SCREEN.width` and `SCREEN.height`, never a hardcoded 128. |
 | Colour model | Indexed. The engine draws into its own pixel buffer of colour numbers, which is what makes palette swap possible. |
-| Imported art | A PNG keeps the colours it was painted in. A colour outside the palette gets a number of its own after the palette's, with no name. The screen can show 255 colours at once; past that a new colour takes the nearest existing one, and the dev tool always warns. A warning for any colour outside the palette is an opt-in config setting. |
-| Palette | 16 colours by default; a project may replace them, or define more, in config. New projects start with Pico-8's palette. The palette is what the built-in sprite editor offers and what `COLOR` names. |
-| Colour names | Colours are passed by name (`COLOR.red`), not as bare numbers. Each name is a palette index, so a number still works and colour arithmetic stays possible. The names are declared with the palette in project config and generated as typed references; until config exists the engine ships Pico-8's sixteen names. |
+| Imported art | A PNG keeps the colours it was painted in. A colour outside the palette gets a number of its own after the palette's, with no name. The screen can show 255 colours at once; past that a new colour takes the nearest existing one, and the dev tool always warns. A PNG pixel belongs to the palette only if its colour matches exactly. A warning for any colour outside the palette is an opt-in config setting, `warnOffPalette`. |
+| Palette | 16 colours by default, Pico-8's. A game replaces them, or defines more, with `palette({ name: '#hex', ... })`, written once in a file of its own. The colours are numbered in the order written, a colour is `#rrggbb` or `#rgb`, and a palette holds 1 to 255. The palette is what the built-in sprite editor offers and what `COLOR` names. |
+| Colour names | Colours are passed by name (`COLOR.red`), not as bare numbers. Each name is a palette index, so a number still works and colour arithmetic stays possible. `tico8` exports `COLOR` with Pico-8's sixteen names. `palette(...)` returns the same kind of object for the game's own colours, which the game exports as its `COLOR`; the names are typed from what was written, so one not in the palette is a compile error and nothing is generated. |
+
+```ts
+// palette.ts
+import { palette } from 'tico8'
+
+export const COLOR = palette({
+  ink: '#1b1b2f',
+  moss: '#3a5a40',
+  sand: '#e9c46a',
+})
+
+// main.ts
+import { COLOR } from './palette'
+
+clear(COLOR.moss)
+```
+
+Saving the palette file restarts the game like any code change, and sprites
+are matched to the new colours.
 
 ## Game loop
 
@@ -241,9 +285,9 @@ hero.draw(player.pos)              // draw
     look as a shape does, with `draw()` and `bounds`, a rect that can be
     filled behind it or tested for a hit.
   - `align` is `'left'`, `'center'` or `'right'` about `x`, line by line;
-    `\n` starts a new line, and nothing wraps on its own. Text is white
-    unless given a colour, and obeys camera and clip like anything else
-    drawn.
+    `\n` starts a new line, and nothing wraps on its own. Text given no
+    colour takes the palette's lightest, white in the standard palette,
+    and obeys camera and clip like anything else drawn.
   - A line is 6 pixels tall, the sixth row being where `g` and `y` hang.
     Most characters are 3 wide with a 1 pixel gap; symbols are 5 or 7.
 
