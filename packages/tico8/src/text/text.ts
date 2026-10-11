@@ -1,4 +1,3 @@
-import { COLOR } from '../palette.ts'
 import type { Screen } from '../screen.ts'
 import type { Rect } from '../shapes.ts'
 import type {
@@ -71,10 +70,19 @@ function drawGlyph(
   }
 }
 
+export interface TextDefaults {
+  /** The colour of text that names none. Defaults to 7. */
+  color?: number
+}
+
 /** The text functions, drawing `font` to `screen`. */
-export function createText(screen: Screen, font: Font) {
+export function createText(
+  screen: Screen,
+  font: Font,
+  defaults: TextDefaults = {},
+) {
   function draw(value: Value, options: Readonly<TextOptions>): void {
-    const color = options.color ?? COLOR.white
+    const color = options.color ?? defaults.color ?? 7
     const align = options.align ?? 'left'
     let y = Math.floor(options.y)
     for (const line of String(value).split('\n')) {
@@ -104,7 +112,7 @@ export function createText(screen: Screen, font: Font) {
   }
 
   /**
-   * Draw text: `text('Score 10', { x: 2, y: 2, color: COLOR.white })`. Any
+   * Draw text: `text('Score 10', { x: 2, y: 2, color: 7 })`. Any
    * object with `x` and `y` will do. `text.measure(value)` says how much room
    * a text takes.
    */

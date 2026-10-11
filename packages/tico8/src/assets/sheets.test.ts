@@ -133,6 +133,50 @@ describe('sheet and ready', () => {
     expect(warn).not.toHaveBeenCalled()
   })
 
+  describe('with warnOffPalette', () => {
+    /** One pixel in a colour outside the palette, the rest in colour 8. */
+    function offPixels(count: number) {
+      const pixels = solid(8)
+      for (let i = 0; i < count; i++) pixels.data.set([1, 2, 3, 255], i * 4)
+      return pixels
+    }
+
+    async function load(pixels: Pixels, warnOffPalette: boolean) {
+      const sheets = createSheets({
+        screen: createScreen(2, 2),
+        colors: [...PICO8],
+        paletteSize: PICO8.length,
+        load: async () => pixels,
+        retryDelay: 0,
+        warnOffPalette,
+      })
+      sheets.sheet(URL, 2, 2)
+      await sheets.ready()
+      await sheets.reload(URL)
+    }
+
+    it('says how many pixels are off the palette, on each load', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      await load(offPixels(3), true)
+      expect(warn).toHaveBeenCalledTimes(2)
+      expect(warn.mock.calls[0]![0]).toContain(URL)
+      expect(warn.mock.calls[0]![0]).toContain('3 pixels')
+      expect(warn.mock.calls[0]![0]).toContain('not in the palette')
+    })
+
+    it('says nothing when it is off', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      await load(offPixels(3), false)
+      expect(warn).not.toHaveBeenCalled()
+    })
+
+    it('says nothing when every pixel is in the palette', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      await load(solid(8), true)
+      expect(warn).not.toHaveBeenCalled()
+    })
+  })
+
   it('warns once per load when the screen has no colours left', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const pixels = solid(8)
@@ -276,5 +320,32 @@ describe('reload', () => {
     expect(error).not.toHaveBeenCalled()
     sheet.draw({ frame: 0, x: 0, y: 0 })
     expect(shown()).toBe(full('a'))
+  })
+})
+
+describe('reloadAll', () => {
+  it('matches every sheet again once the palette has changed', async () => {
+    const colors: Rgb[] = [...PICO8]
+    let size = PICO8.length
+    const screen = createScreen(2, 2)
+    const sheets = createSheets({
+      screen,
+      colors,
+      paletteSize: () => size,
+      load: async () => solid(8),
+      retryDelay: 0,
+    })
+    const sheet = sheets.sheet(URL, 2, 2)
+    await sheets.ready()
+    sheet.draw({ frame: 0, x: 0, y: 0 })
+    expect(toPicture(screen)).toBe(full('8'))
+
+    // A new palette in which the picture's red is colour 1.
+    colors.length = 0
+    colors.push(PICO8[0]!, PICO8[8]!)
+    size = 2
+    await sheets.reloadAll()
+    sheet.draw({ frame: 0, x: 0, y: 0 })
+    expect(toPicture(screen)).toBe(full('1'))
   })
 })

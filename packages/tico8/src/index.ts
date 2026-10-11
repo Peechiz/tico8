@@ -1,5 +1,6 @@
-import { display, pad } from './console.ts'
+import { colors, display, pad, setPalette } from './console.ts'
 import type { Input } from './input.ts'
+import { PICO8_NAMES, readPalette } from './palette.ts'
 import type { Rect, Shape } from './shapes.ts'
 import { createShapes, drawLine, fillShape, strokeShape } from './shapes.ts'
 import type { Swap } from './sprites.ts'
@@ -9,7 +10,6 @@ import type { Vec } from './vec.ts'
 
 export type { Button, ButtonName, Input } from './input.ts'
 export type { Game } from './loop.ts'
-export { COLOR } from './palette.ts'
 export type {
   Circle,
   Drawn,
@@ -30,6 +30,33 @@ export type {
 export { type Vec, vec } from './vec.ts'
 
 type Point = Readonly<Vec>
+
+/**
+ * Pico-8's sixteen colours by name: `COLOR.red`. Each is the colour's
+ * palette index. A game with a palette of its own makes its own `COLOR`
+ * with `palette`.
+ */
+export const COLOR = PICO8_NAMES
+
+/**
+ * Give the game its own palette, and get its colours back by name. Write
+ * it once, in a file of its own, and import `COLOR` from there:
+ *
+ *     export const COLOR = palette({
+ *       ink: '#1b1b2f',
+ *       moss: '#3a5a40',
+ *     })
+ *
+ * The colours are numbered in the order written, so the first is colour 0.
+ * A colour is `#rrggbb` or `#rgb`. This replaces Pico-8's palette whole.
+ */
+export function palette<const T extends Readonly<Record<string, string>>>(
+  written: T,
+): { readonly [Name in keyof T]: number } {
+  const { colors: list, names } = readPalette(written)
+  setPalette(list)
+  return names as { readonly [Name in keyof T]: number }
+}
 
 /** The screen's size in game pixels. Use these, never a hardcoded 128. */
 export const SCREEN: { readonly width: number; readonly height: number } =
@@ -113,9 +140,14 @@ export function line({ from, to, color }: Readonly<Line>): void {
  * `y` is the top of the first line and `\n` starts another. `align` is
  * `'left'`, `'center'` or `'right'` about `x`. `text.measure(string)` gives
  * a text's size, and `title.bounds` the rect a label covers. Symbols are
- * typed straight in: `'♥ 3  ● 12'`.
+ * typed straight in: `'♥ 3  ● 12'`. Text given no colour is drawn in the
+ * palette's lightest.
  */
-export const { text, label } = createText(display, FONT)
+export const { text, label } = createText(display, FONT, {
+  get color() {
+    return colors.text
+  },
+})
 
 /**
  * Draw the world through a camera: everything `draw` draws is moved so

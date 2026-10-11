@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { COLOR } from '../palette.ts'
 import { createScreen } from '../screen.ts'
 import { picture, toPicture } from '../testing.ts'
 import { createText } from './text.ts'
@@ -42,7 +41,7 @@ describe('text', () => {
 
   it('takes a colour', () => {
     const { screen, text } = setup(4, 4)
-    text('i', { x: 1, y: 0, color: COLOR.red })
+    text('i', { x: 1, y: 0, color: 8 })
     expect(toPicture(screen)).toBe(
       picture(`
         .8..
@@ -53,10 +52,19 @@ describe('text', () => {
     )
   })
 
+  it('draws in the default colour it was given', () => {
+    const screen = createScreen(4, 4)
+    const { text } = createText(screen, font, { color: 12 })
+    text('i', { x: 1, y: 0 })
+    text('i', { x: 2, y: 0, color: 8 })
+    expect(screen.read(1, 0)).toBe(12)
+    expect(screen.read(2, 0)).toBe(8)
+  })
+
   it('takes any object with x and y', () => {
     const { screen, text } = setup(4, 4)
     text('i', { x: 2, y: 0, vx: 3 } as { x: number; y: number })
-    expect(screen.read(2, 0)).toBe(COLOR.white)
+    expect(screen.read(2, 0)).toBe(7)
   })
 
   it('breaks lines at newlines and skips carriage returns', () => {
@@ -262,7 +270,7 @@ describe('label', () => {
     screen.clear()
     l.text = 'a'
     l.x = 2
-    l.color = COLOR.red
+    l.color = 8
     l.draw()
     expect(toPicture(screen)).toBe(picture('..888.\n..8.8.\n..888.\n..8.8.'))
   })

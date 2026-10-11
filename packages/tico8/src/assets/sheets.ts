@@ -1,4 +1,10 @@
-import { display, PALETTE_SIZE, palette } from '../console.ts'
+import {
+  display,
+  colors as gameColors,
+  onPaletteChange,
+  palette,
+  settings,
+} from '../console.ts'
 import { MAX_COLORS, type Rgb } from '../palette.ts'
 import type { Screen } from '../screen.ts'
 import type { LoadableSheet, Sheet } from '../sprites.ts'
@@ -26,26 +32,36 @@ export interface SheetsOptions {
   /** Every colour the screen can show. Colours found in art are added. */
   colors: Rgb[]
   /** How many of `colors`, from the start, are the project's palette. */
-  paletteSize: number
+  paletteSize: number | (() => number)
   /** Fetch and decode the PNG at an address. */
   load(url: string): Promise<Pixels>
   /** Milliseconds before the second try. Defaults to `RETRY_DELAY`. */
   retryDelay?: number
+  /** Also say how many pixels of a sheet are outside the palette. */
+  warnOffPalette?: boolean
 }
 
 export interface Sheets {
   sheet(url: string, cellWidth: number, cellHeight: number): Sheet
   ready(): Promise<void>
   reload(url: string): Promise<void>
+  /** Load every sheet again, for when the palette has changed. */
+  reloadAll(): Promise<void>
 }
 
 /**
  * What to say about pixels in colours from outside the palette. Art keeps
- * the colours it was painted in, so there is nothing to say unless the
- * screen ran out of colours and some pixels took a nearby one.
+ * the colours it was painted in, so unless `warn` is on there is nothing to
+ * say until the screen runs out of colours and some pixels take a nearby one.
  */
-function reportOffPalette(url: string, indexed: Indexed): void {
-  const { snapped } = indexed
+function reportOffPalette(url: string, indexed: Indexed, warn: boolean): void {
+  const { snapped, offPalette } = indexed
+  if (warn && offPalette > 0) {
+    console.warn(
+      `tico8: ${url} has ${offPalette} pixel${offPalette === 1 ? '' : 's'} ` +
+        'in colours that are not in the palette',
+    )
+  }
   if (snapped === 0) return
   console.warn(
     `tico8: ${url} has ${snapped} pixel${snapped === 1 ? '' : 's'} drawn in ` +
@@ -71,6 +87,7 @@ export function createSheets(options: SheetsOptions): Sheets {
     paletteSize,
     load,
     retryDelay = RETRY_DELAY,
+    warnOffPalette = false,
   } = options
 
   interface Entry {
@@ -103,10 +120,11 @@ export function createSheets(options: SheetsOptions): Sheets {
       }
       if (stale()) return
       const { data, width, height } = pixels
-      const indexed = indexPixels(data, width, height, colors, paletteSize)
+      const size = typeof paletteSize === 'number' ? paletteSize : paletteSize()
+      const indexed = indexPixels(data, width, height, colors, size)
       entry.sheet.setImage(indexed.image)
       entry.loaded = true
-      reportOffPalette(url, indexed)
+      reportOffPalette(url, indexed, warnOffPalette)
     } catch (error) {
       if (!stale()) reportFailure(url, error, entry.loaded)
     }
@@ -140,6 +158,12 @@ export function createSheets(options: SheetsOptions): Sheets {
       const entry = registry.get(url)
       if (entry) await track(fill(url, entry, true))
     },
+
+    async reloadAll() {
+      await Promise.all(
+        [...registry].map(([url, entry]) => track(fill(url, entry, false))),
+      )
+    },
   }
 }
 
@@ -151,8 +175,14 @@ function bust(url: string): string {
 const sheets = createSheets({
   screen: display,
   colors: palette,
-  paletteSize: PALETTE_SIZE,
+  paletteSize: () => gameColors.size,
   load: loadPixels,
+  warnOffPalette: settings.warnOffPalette,
+})
+
+// Pictures hold colour numbers, so a new palette means matching them again.
+onPaletteChange(() => {
+  sheets.reloadAll()
 })
 
 /**

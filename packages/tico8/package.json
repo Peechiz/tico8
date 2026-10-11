@@ -8,6 +8,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
+    "./config": "./src/config.ts",
     "./run": "./src/run.ts",
     "./assets": "./src/assets/sheets.ts"
   },

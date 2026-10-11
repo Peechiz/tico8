@@ -1,5 +1,5 @@
 import { ready } from './assets/sheets.ts'
-import { display, pad, palette, RATE } from './console.ts'
+import { display, pad, palette, settings } from './console.ts'
 import { mount } from './host.ts'
 import { attachKeyboard } from './input.ts'
 import type { Game } from './loop.ts'
@@ -21,7 +21,7 @@ export function run(game: Game): () => void {
     const host = mount(document.body, display, palette)
     const detach = attachKeyboard(window, pad)
     const loop = createLoop(game, {
-      rate: RATE,
+      rate: settings.rate,
       onUpdate: pad.sample,
       beforeDraw: display.beginFrame,
       onDraw: host.present,
