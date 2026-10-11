@@ -1,4 +1,4 @@
-# 15 — Scaffold
+# 16 — Scaffold
 
 Stub. Detail the tasks before starting (see `../AGENTS.md`, step 2).
 
@@ -19,6 +19,8 @@ Stub. Detail the tasks before starting (see `../AGENTS.md`, step 2).
 - `create-tico8` package
 - Starter template: config, main file, one sprite
 - Editor settings so generated references are picked up
+- A project outside this repo with no config file: check its page is
+  served the engine's `project.ts` (see "Not checked" in `05-config.md`)
 
 ## Check
 

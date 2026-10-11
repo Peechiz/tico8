@@ -21,7 +21,8 @@ Slices whose "needs" are all `done` can run in parallel.
 | 12 | [Export](12-export.md) | 02 | medium | todo | One HTML file that plays the demo on double-click |
 | 13 | [Sprite editor](13-sprite-editor.md) | 02 | large | todo | A Sprites tab that paints into the PNG the game is showing |
 | 14 | [Map editor](14-map-editor.md) | 07, 13 | large | todo | A Map tab that edits the room the game is showing |
-| 15 | [Scaffold](15-scaffold.md) | 05 | small | todo | `npm create tico8` makes a project that runs |
+| 15 | [Package build](15-package-build.md) | 05 | small | todo | The demo run from an installed copy of the package, not the workspace source |
+| 16 | [Scaffold](16-scaffold.md) | 05, 15 | small | todo | `npm create tico8` makes a project that runs |
 
 ## Lanes after slice 02
 
@@ -30,7 +31,7 @@ Slices whose "needs" are all `done` can run in parallel.
 - World: 07
 - Sound and storage: 08, 09
 - UI: 10, 11
-- Shipping: 12, 15
+- Shipping: 12, 15, 16
 - Editors: 13, 14
 
 Export (12) packs every asset type that exists when it is built. A slice that
