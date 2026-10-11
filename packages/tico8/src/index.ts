@@ -1,21 +1,20 @@
 import { display, pad } from './console.ts'
 import type { Input } from './input.ts'
 import type { Rect, Shape } from './shapes.ts'
-import { drawLine, fillShape, outlineShape } from './shapes.ts'
+import { createShapes, drawLine, fillShape, strokeShape } from './shapes.ts'
 import type { Swap } from './sprites.ts'
 import type { Vec } from './vec.ts'
 
 export type { Button, ButtonName, Input } from './input.ts'
 export type { Game } from './loop.ts'
 export { COLOR } from './palette.ts'
-export {
-  type Circle,
-  circle,
-  type Oval,
-  oval,
-  type Rect,
-  rect,
-  type Shape,
+export type {
+  Circle,
+  Drawn,
+  Look,
+  Oval,
+  Rect,
+  Shape,
 } from './shapes.ts'
 export type { DrawOptions, Sheet, Sprite, Swap } from './sprites.ts'
 export { type Vec, vec } from './vec.ts'
@@ -56,16 +55,27 @@ export function pixel(a: number | Point, b?: number, c?: number) {
 }
 
 /**
- * Draw a shape solid:
- * `fill({ x: 0, y: 0, width: 8, height: 8 }, COLOR.red)`.
+ * Make shapes that hold their own colours and draw themselves:
+ *
+ *     const sun = circle({ x: 64, y: 30, radius: 12, fill: COLOR.yellow, stroke: COLOR.orange })
+ *     sun.draw()
+ *
+ * A rect is placed by its top left, a circle and an oval by their centre.
+ * `rect.overlaps(a, b)` and `rect.contains(r, point)` test for hits.
+ */
+export const { rect, circle, oval } = createShapes(display)
+
+/**
+ * Draw any object shaped like a shape solid, such as a hitbox:
+ * `fill(player, COLOR.red)`.
  */
 export function fill(shape: Shape, color: number): void {
   fillShape(display, shape, color)
 }
 
-/** Draw a shape's edge, one pixel thick. */
-export function outline(shape: Shape, color: number): void {
-  outlineShape(display, shape, color)
+/** Draw the edge of any object shaped like a shape, one pixel thick. */
+export function stroke(shape: Shape, color: number): void {
+  strokeShape(display, shape, color)
 }
 
 /** A straight line between two points, both ends included, and its colour. */

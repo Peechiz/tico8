@@ -25,48 +25,101 @@ export interface Oval {
 }
 
 /**
- * Anything that can be filled or outlined. Shapes are told apart by their
+ * Anything that can be filled or stroked. Shapes are told apart by their
  * fields, so a game's own object with the right ones counts: anything with
  * `x`, `y`, `width` and `height` is a rect.
  */
 export type Shape = Readonly<Rect> | Readonly<Circle> | Readonly<Oval>
 
 /**
- * Make a rect: plain data, `{ x, y, width, height }`, placed by its top
- * left. The tests live on `rect` itself: `rect.overlaps(a, b)`,
- * `rect.contains(r, point)`.
+ * How a made shape is drawn. Either colour can be left out, and both can be
+ * changed later: `crate.fill = COLOR.red`.
  */
-export const rect = Object.assign(
-  ({ x, y, width, height }: Readonly<Rect>): Rect => ({ x, y, width, height }),
-  {
-    /** Whether two rects share any pixel. Touching edges do not count. */
-    overlaps: (a: Readonly<Rect>, b: Readonly<Rect>): boolean =>
-      a.width > 0 &&
-      a.height > 0 &&
-      b.width > 0 &&
-      b.height > 0 &&
-      a.x < b.x + b.width &&
-      b.x < a.x + a.width &&
-      a.y < b.y + b.height &&
-      b.y < a.y + a.height,
-
-    /** Whether a point is inside a rect. */
-    contains: (r: Readonly<Rect>, point: Readonly<Vec>): boolean =>
-      point.x >= r.x &&
-      point.x < r.x + r.width &&
-      point.y >= r.y &&
-      point.y < r.y + r.height,
-  },
-)
-
-/** Make a circle: plain data, `{ x, y, radius }`, placed by its centre. */
-export function circle({ x, y, radius }: Readonly<Circle>): Circle {
-  return { x, y, radius }
+export interface Look {
+  /** The colour of the inside. */
+  fill?: number
+  /** The colour of the edge, one pixel thick, drawn over the fill. */
+  stroke?: number
 }
 
-/** Make an oval: plain data, `{ x, y, radiusX, radiusY }`, placed by its centre. */
-export function oval({ x, y, radiusX, radiusY }: Readonly<Oval>): Oval {
-  return { x, y, radiusX, radiusY }
+/**
+ * A shape from a maker: the shape's own fields, its look, and `draw()`.
+ * `draw` is not a field of the data, so a copy made by spreading is a bare
+ * shape again.
+ */
+export type Drawn<S> = S & Look & { draw(): void }
+
+/** Whether two rects share any pixel. Touching edges do not count. */
+function overlaps(a: Readonly<Rect>, b: Readonly<Rect>): boolean {
+  return (
+    a.width > 0 &&
+    a.height > 0 &&
+    b.width > 0 &&
+    b.height > 0 &&
+    a.x < b.x + b.width &&
+    b.x < a.x + a.width &&
+    a.y < b.y + b.height &&
+    b.y < a.y + a.height
+  )
+}
+
+/** Whether a point is inside a rect. */
+function contains(r: Readonly<Rect>, point: Readonly<Vec>): boolean {
+  return (
+    point.x >= r.x &&
+    point.x < r.x + r.width &&
+    point.y >= r.y &&
+    point.y < r.y + r.height
+  )
+}
+
+/** The shape makers, making shapes that draw to `screen`. */
+export function createShapes(screen: Screen) {
+  const drawable = {
+    draw(this: Shape & Look) {
+      if (this.fill !== undefined) fillShape(screen, this, this.fill)
+      if (this.stroke !== undefined) strokeShape(screen, this, this.stroke)
+    },
+  }
+
+  function make<S extends object>(fields: S, look: Look): Drawn<S> {
+    const shape: Drawn<S> = Object.assign(Object.create(drawable), fields)
+    if (look.fill !== undefined) shape.fill = look.fill
+    if (look.stroke !== undefined) shape.stroke = look.stroke
+    return shape
+  }
+
+  return {
+    /**
+     * Make a rect, placed by its top left, with the colours it is drawn in:
+     * `rect({ x, y, width, height, fill: COLOR.brown, stroke: COLOR.orange })`,
+     * then `crate.draw()`. The tests live on `rect` itself:
+     * `rect.overlaps(a, b)`, `rect.contains(r, point)`.
+     */
+    rect: Object.assign(
+      ({ x, y, width, height, ...look }: Readonly<Rect & Look>): Drawn<Rect> =>
+        make({ x, y, width, height }, look),
+      { overlaps, contains },
+    ),
+
+    /** Make a circle, placed by its centre: `circle({ x, y, radius, fill })`. */
+    circle: ({
+      x,
+      y,
+      radius,
+      ...look
+    }: Readonly<Circle & Look>): Drawn<Circle> => make({ x, y, radius }, look),
+
+    /** Make an oval, placed by its centre: `oval({ x, y, radiusX, radiusY, fill })`. */
+    oval: ({
+      x,
+      y,
+      radiusX,
+      radiusY,
+      ...look
+    }: Readonly<Oval & Look>): Drawn<Oval> =>
+      make({ x, y, radiusX, radiusY }, look),
+  }
 }
 
 type Kind =
@@ -160,11 +213,7 @@ export function fillShape(screen: Screen, shape: Shape, color: number): void {
 }
 
 /** Draw a shape's edge, one pixel thick, in one colour. */
-export function outlineShape(
-  screen: Screen,
-  shape: Shape,
-  color: number,
-): void {
+export function strokeShape(screen: Screen, shape: Shape, color: number): void {
   const k = classify(shape)
   if (k.kind === 'oval') {
     drawOval(screen, k, color, false)

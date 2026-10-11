@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { createScreen } from './screen.ts'
 import {
-  circle,
+  createShapes,
   drawLine,
   fillShape,
-  outlineShape,
-  oval,
-  rect,
   type Shape,
+  strokeShape,
 } from './shapes.ts'
 import { picture, toPicture } from './testing.ts'
 
@@ -21,10 +19,13 @@ function drawn(
   return toPicture(s)
 }
 
-const outlined = (shape: Shape, size = 9) =>
-  drawn(size, size, (s) => outlineShape(s, shape, 1))
+const stroked = (shape: Shape, size = 9) =>
+  drawn(size, size, (s) => strokeShape(s, shape, 1))
 const filled = (shape: Shape, size = 9) =>
   drawn(size, size, (s) => fillShape(s, shape, 2))
+
+const { rect, circle, oval } = createShapes(createScreen(1, 1))
+
 describe('makers', () => {
   it('make plain rects, circles and ovals from named fields', () => {
     expect(rect({ x: 1, y: 2, width: 3, height: 4 })).toEqual({
@@ -93,6 +94,72 @@ describe('makers', () => {
       ....
     `),
     )
+  })
+})
+
+describe('draw', () => {
+  const s = createScreen(6, 5)
+  const shapes = createShapes(s)
+  const shown = (shape: { draw(): void }) => {
+    s.clear(0)
+    shape.draw()
+    return toPicture(s)
+  }
+  const box = { x: 1, y: 1, width: 4, height: 3 }
+
+  it('fills, then strokes over the fill', () => {
+    expect(shown(shapes.rect({ ...box, fill: 2, stroke: 1 }))).toBe(
+      picture(`
+      ......
+      .1111.
+      .1221.
+      .1111.
+      ......
+    `),
+    )
+  })
+
+  it('draws only the colours it has', () => {
+    const blank = toPicture(createScreen(6, 5))
+    expect(shown(shapes.rect(box))).toBe(blank)
+    expect(shown(shapes.rect({ ...box, fill: 2 }))).toBe(
+      drawn(6, 5, (t) => fillShape(t, box, 2)),
+    )
+    expect(shown(shapes.rect({ ...box, stroke: 1 }))).toBe(
+      drawn(6, 5, (t) => strokeShape(t, box, 1)),
+    )
+  })
+
+  it('draws colour 0', () => {
+    s.clear(3)
+    shapes.rect({ ...box, fill: 0 }).draw()
+    expect(s.read(2, 2)).toBe(0)
+  })
+
+  it('follows the shape as it moves and changes colour', () => {
+    const ball = shapes.circle({ x: 1, y: 2, radius: 1, fill: 2 })
+    ball.x = 4
+    ball.fill = 7
+    expect(shown(ball)).toBe(
+      drawn(6, 5, (t) => fillShape(t, { x: 4, y: 2, radius: 1 }, 7)),
+    )
+    ball.fill = undefined
+    expect(shown(ball)).toBe(toPicture(createScreen(6, 5)))
+  })
+
+  it('draws circles and ovals the same as fill and stroke', () => {
+    const egg = { x: 2, y: 2, radiusX: 2, radiusY: 1 }
+    expect(shown(shapes.oval({ ...egg, fill: 2, stroke: 1 }))).toBe(
+      drawn(6, 5, (t) => {
+        fillShape(t, egg, 2)
+        strokeShape(t, egg, 1)
+      }),
+    )
+  })
+
+  it('keeps the look as data and draw out of it', () => {
+    const made = shapes.rect({ ...box, fill: 2, stroke: 1 })
+    expect({ ...made }).toEqual({ ...box, fill: 2, stroke: 1 })
   })
 })
 
@@ -179,10 +246,10 @@ describe('rect drawing', () => {
     )
   })
 
-  it('outlines one pixel thick inside the bounds', () => {
+  it('strokes one pixel thick inside the bounds', () => {
     expect(
       drawn(8, 6, (s) =>
-        outlineShape(s, rect({ x: 1, y: 1, width: 5, height: 4 }), 3),
+        strokeShape(s, rect({ x: 1, y: 1, width: 5, height: 4 }), 3),
       ),
     ).toBe(
       picture(`
@@ -196,10 +263,10 @@ describe('rect drawing', () => {
     )
   })
 
-  it('outlines a 1-wide or 1-tall rect as a line, each pixel once', () => {
+  it('strokes a 1-wide or 1-tall rect as a line, each pixel once', () => {
     expect(
       drawn(5, 5, (s) =>
-        outlineShape(s, rect({ x: 1, y: 1, width: 1, height: 3 }), 3),
+        strokeShape(s, rect({ x: 1, y: 1, width: 1, height: 3 }), 3),
       ),
     ).toBe(
       picture(`
@@ -212,7 +279,7 @@ describe('rect drawing', () => {
     )
     expect(
       drawn(5, 3, (s) =>
-        outlineShape(s, rect({ x: 1, y: 1, width: 3, height: 1 }), 3),
+        strokeShape(s, rect({ x: 1, y: 1, width: 3, height: 1 }), 3),
       ),
     ).toBe(
       picture(`
@@ -223,7 +290,7 @@ describe('rect drawing', () => {
     )
     expect(
       drawn(3, 3, (s) =>
-        outlineShape(s, rect({ x: 1, y: 1, width: 1, height: 1 }), 3),
+        strokeShape(s, rect({ x: 1, y: 1, width: 1, height: 1 }), 3),
       ),
     ).toBe(
       picture(`
@@ -242,7 +309,7 @@ describe('rect drawing', () => {
       rect({ x: 1, y: 1, width: -2, height: 2 }),
     ]) {
       expect(drawn(4, 4, (s) => fillShape(s, r, 3))).toBe(blank)
-      expect(drawn(4, 4, (s) => outlineShape(s, r, 3))).toBe(blank)
+      expect(drawn(4, 4, (s) => strokeShape(s, r, 3))).toBe(blank)
     }
   })
 
@@ -268,12 +335,12 @@ describe('circle drawing', () => {
       .........
       .........
     `)
-    expect(outlined(at(0))).toBe(one)
+    expect(stroked(at(0))).toBe(one)
     expect(filled(at(0))).toBe(one.replace('1', '2'))
   })
 
   it('draws radius 1 as a plus', () => {
-    expect(outlined(at(1))).toBe(
+    expect(stroked(at(1))).toBe(
       picture(`
       .........
       .........
@@ -302,7 +369,7 @@ describe('circle drawing', () => {
   })
 
   it('draws radius 2 as a 5x5 ring with the corners cut', () => {
-    expect(outlined(at(2))).toBe(
+    expect(stroked(at(2))).toBe(
       picture(`
       .........
       .........
@@ -331,7 +398,7 @@ describe('circle drawing', () => {
   })
 
   it('draws radius 3', () => {
-    expect(outlined(at(3))).toBe(
+    expect(stroked(at(3))).toBe(
       picture(`
       .........
       ...111...
@@ -360,7 +427,7 @@ describe('circle drawing', () => {
   })
 
   it('draws radius 4', () => {
-    expect(outlined(at(4))).toBe(
+    expect(stroked(at(4))).toBe(
       picture(`
       ...111...
       .11...11.
@@ -390,15 +457,15 @@ describe('circle drawing', () => {
 
   it('draws nothing for a negative radius', () => {
     const blank = drawn(9, 9, () => {})
-    expect(outlined(at(-1))).toBe(blank)
+    expect(stroked(at(-1))).toBe(blank)
     expect(filled(at(-1))).toBe(blank)
   })
 })
 
 describe('oval drawing', () => {
-  it('outlines and fills a wide oval', () => {
+  it('strokes and fills a wide oval', () => {
     const o = oval({ x: 5, y: 3, radiusX: 4, radiusY: 2 })
-    expect(drawn(11, 7, (s) => outlineShape(s, o, 1))).toBe(
+    expect(drawn(11, 7, (s) => strokeShape(s, o, 1))).toBe(
       picture(`
       ...........
       ....111....
@@ -422,10 +489,10 @@ describe('oval drawing', () => {
     )
   })
 
-  it('outlines a tall oval', () => {
+  it('strokes a tall oval', () => {
     expect(
       drawn(7, 9, (s) =>
-        outlineShape(s, oval({ x: 3, y: 4, radiusX: 2, radiusY: 4 }), 1),
+        strokeShape(s, oval({ x: 3, y: 4, radiusX: 2, radiusY: 4 }), 1),
       ),
     ).toBe(
       picture(`
@@ -454,7 +521,7 @@ describe('oval drawing', () => {
     `)
     expect(
       drawn(11, 7, (s) =>
-        outlineShape(s, oval({ x: 5, y: 3, radiusX: 3, radiusY: 0 }), 1),
+        strokeShape(s, oval({ x: 5, y: 3, radiusX: 3, radiusY: 0 }), 1),
       ),
     ).toBe(line)
     expect(
@@ -475,7 +542,7 @@ describe('oval drawing', () => {
     `)
     expect(
       drawn(7, 9, (s) =>
-        outlineShape(s, oval({ x: 3, y: 4, radiusX: 0, radiusY: 3 }), 1),
+        strokeShape(s, oval({ x: 3, y: 4, radiusX: 0, radiusY: 3 }), 1),
       ),
     ).toBe(upright)
     expect(
@@ -483,21 +550,21 @@ describe('oval drawing', () => {
         fillShape(s, oval({ x: 3, y: 4, radiusX: 0, radiusY: 3 }), 1),
       ),
     ).toBe(upright)
-    expect(outlined(oval({ x: 4, y: 4, radiusX: 0, radiusY: 0 }))).toBe(
-      outlined(circle({ x: 4, y: 4, radius: 0 })),
+    expect(stroked(oval({ x: 4, y: 4, radiusX: 0, radiusY: 0 }))).toBe(
+      stroked(circle({ x: 4, y: 4, radius: 0 })),
     )
   })
 
   it('draws nothing for a negative radius', () => {
     const blank = drawn(9, 9, () => {})
-    expect(outlined(oval({ x: 4, y: 4, radiusX: -1, radiusY: 2 }))).toBe(blank)
+    expect(stroked(oval({ x: 4, y: 4, radiusX: -1, radiusY: 2 }))).toBe(blank)
     expect(filled(oval({ x: 4, y: 4, radiusX: 2, radiusY: -1 }))).toBe(blank)
   })
 
   it('matches the circle when the radii are equal', () => {
     for (let r = 0; r <= 8; r++) {
-      expect(outlined(oval({ x: 9, y: 9, radiusX: r, radiusY: r }), 19)).toBe(
-        outlined(circle({ x: 9, y: 9, radius: r }), 19),
+      expect(stroked(oval({ x: 9, y: 9, radiusX: r, radiusY: r }), 19)).toBe(
+        stroked(circle({ x: 9, y: 9, radius: r }), 19),
       )
       expect(filled(oval({ x: 9, y: 9, radiusX: r, radiusY: r }), 19)).toBe(
         filled(circle({ x: 9, y: 9, radius: r }), 19),
@@ -512,13 +579,13 @@ describe('circle and oval invariants', () => {
   for (let a = 0; a <= 8; a++) pairs.push([a, a], [a, 3], [8 - a, a])
 
   function check(shape: Shape) {
-    const out = outlined(shape, size).split('\n')
+    const out = stroked(shape, size).split('\n')
     const fill = filled(shape, size).split('\n')
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
         if (out[y]![x] === '1') expect(fill[y]![x]).toBe('2')
         if (fill[y]![x] === '2' && out[y]![x] === '0') {
-          // an inside pixel: must sit between outline pixels or fill on its row
+          // an inside pixel: must sit between stroke pixels or fill on its row
           expect(out[y]!.includes('1')).toBe(true)
         }
       }
@@ -530,7 +597,7 @@ describe('circle and oval invariants', () => {
     }
   }
 
-  it('keeps every circle outline pixel in its fill, with no gaps', () => {
+  it('keeps every circle stroke pixel in its fill, with no gaps', () => {
     for (let r = 0; r <= 8; r++) check(circle({ x: 10, y: 10, radius: r }))
   })
 
@@ -539,9 +606,9 @@ describe('circle and oval invariants', () => {
       check(oval({ x: 10, y: 10, radiusX: rx, radiusY: ry }))
   })
 
-  it('fills exactly the outline plus the inside', () => {
+  it('fills exactly the stroke plus the inside', () => {
     for (const [rx, ry] of pairs) {
-      const out = outlined(
+      const out = stroked(
         oval({ x: 10, y: 10, radiusX: rx, radiusY: ry }),
         size,
       ).split('\n')
@@ -696,7 +763,7 @@ describe('camera, clip and extra fields', () => {
 
     const c = createScreen(8, 6)
     c.withCamera(-2, -1, () =>
-      outlineShape(c, circle({ x: 1, y: 1, radius: 1 }), 4),
+      strokeShape(c, circle({ x: 1, y: 1, radius: 1 }), 4),
     )
     expect(toPicture(c)).toBe(
       picture(`
@@ -717,7 +784,7 @@ describe('camera, clip and extra fields', () => {
     expect(filled(player)).toBe(
       filled(rect({ x: 1, y: 1, width: 3, height: 2 })),
     )
-    expect(outlined(ball)).toBe(outlined(circle({ x: 4, y: 4, radius: 1 })))
+    expect(stroked(ball)).toBe(stroked(circle({ x: 4, y: 4, radius: 1 })))
     expect(filled(egg)).toBe(
       filled(oval({ x: 4, y: 4, radiusX: 1, radiusY: 2 })),
     )
