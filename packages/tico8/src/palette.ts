@@ -22,6 +22,12 @@ export const PICO8: Palette = [
   [255, 204, 170],
 ]
 
+/**
+ * The most colours the screen can tell apart: it holds one byte per pixel,
+ * and one value marks see-through pixels in sprite sheets.
+ */
+export const MAX_COLORS = 255
+
 /** Names for the colours of Pico-8's palette, each its palette index. */
 export const COLOR = {
   black: 0,
