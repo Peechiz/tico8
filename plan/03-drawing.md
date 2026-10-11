@@ -58,6 +58,15 @@ The demo draws a scene with every shape, scrolls it with the camera, cuts a wind
   user asked for options objects in place of runs of bare numbers. Shape
   makers, `line`, `clip`, and a sheet's `draw`, `pixel` and `erase` now take
   one object. The rule is in the spec's "Naming".
+- **Shapes hold their look.** Later the user found `fill` then `outline`
+  for every shape tedious. Makers now take `fill` and `stroke` colours and
+  the shape has `draw()`, which fills and then strokes. `outline` was
+  renamed `stroke` to match the field; `fill(shape, color)` and
+  `stroke(shape, color)` stay for bare objects such as a hitbox. `draw` is
+  not a field of the shape, so a spread copy is a bare shape.
+- **One example per slice.** The game moved to `examples/03-drawing`, and
+  the slice 01 and 02 games were brought back as `examples/01-dot` and
+  `examples/02-sprite`.
 - **Design direction:** the user wants the API modern and convenient, not
   Pico-8-shaped. Now a guiding rule in the spec.
 - **Shape sizes:** a rect covers `x` to `x + width - 1`. A circle of radius
