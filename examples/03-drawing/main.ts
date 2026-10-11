@@ -7,12 +7,12 @@ import {
   fill,
   input,
   line,
-  outline,
   oval,
   pixel,
   rect,
   SCREEN,
   screenSwap,
+  stroke,
   vec,
 } from 'tico8'
 import { player } from './sprites'
@@ -24,13 +24,45 @@ const world = rect({
   width: SCREEN.width * 2,
   height: SCREEN.height,
 })
-const ground = rect({ x: 0, y: 112, width: world.width, height: 16 })
-const crate = rect({ x: 150, y: 96, width: 16, height: 16 })
-const sun = circle({ x: 200, y: 64, radius: 12 })
-const pond = oval({ x: 64, y: 116, radiusX: 26, radiusY: 4 })
+const ground = rect({
+  x: 0,
+  y: 112,
+  width: world.width,
+  height: 16,
+  fill: COLOR.darkGreen,
+})
+const crate = rect({
+  x: 150,
+  y: 96,
+  width: 16,
+  height: 16,
+  fill: COLOR.brown,
+  stroke: COLOR.orange,
+})
+const sun = circle({
+  x: 200,
+  y: 64,
+  radius: 12,
+  fill: COLOR.yellow,
+  stroke: COLOR.orange,
+})
+const pond = oval({
+  x: 64,
+  y: 116,
+  radiusX: 26,
+  radiusY: 4,
+  fill: COLOR.blue,
+  stroke: COLOR.white,
+})
 
 // Screen furniture, drawn outside the camera.
-const hud = rect({ x: 0, y: 0, width: SCREEN.width, height: 9 })
+const hud = rect({
+  x: 0,
+  y: 0,
+  width: SCREEN.width,
+  height: 9,
+  fill: COLOR.black,
+})
 const spyglass = rect({ x: 86, y: 13, width: 38, height: 26 })
 
 const hero = player.sprite()
@@ -72,18 +104,15 @@ export function update() {
 }
 
 function drawWorld() {
-  fill(sun, COLOR.yellow)
-  outline(sun, COLOR.orange)
-  fill(ground, COLOR.darkGreen)
+  sun.draw()
+  ground.draw()
   line({
     from: ground,
     to: { x: world.width, y: ground.y },
     color: COLOR.green,
   })
-  fill(pond, COLOR.blue)
-  outline(pond, COLOR.white)
-  fill(crate, COLOR.brown)
-  outline(crate, COLOR.orange)
+  pond.draw()
+  crate.draw()
   line({
     from: crate,
     to: { x: crate.x + 15, y: crate.y + 15 },
@@ -102,15 +131,15 @@ export function draw() {
     fill(spyglass, COLOR.black)
     camera(crate.x - spyglass.x - 11, crate.y - spyglass.y - 8, drawWorld)
   })
-  outline(spyglass, COLOR.white)
+  stroke(spyglass, COLOR.white)
 
-  fill(hud, COLOR.black)
+  hud.draw()
   line({
     from: { x: 0, y: hud.height },
     to: { x: SCREEN.width, y: hud.height },
     color: COLOR.lightGrey,
   })
-  // How far across the world the hero is.
+  // How far across the world the hero is. A bare object is a shape too.
   const reach = Math.floor((body.x / world.width) * (SCREEN.width - 4))
   fill({ x: 2, y: 3, width: reach, height: 3 }, COLOR.red)
 
