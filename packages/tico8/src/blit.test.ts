@@ -172,3 +172,92 @@ describe('blit', () => {
     )
   })
 })
+
+describe('blit with the draw state', () => {
+  it('follows the camera', () => {
+    const s = createScreen(6, 4)
+    s.withCamera(1, 1, () => blit(s, image(), 0, 0, 3, 2, 2, 2))
+    expect(toPicture(s)).toBe(draw(1, 1))
+  })
+
+  it('floors the camera-shifted position', () => {
+    const s = createScreen(6, 4)
+    s.withCamera(0.5, 0, () => blit(s, image(), 0, 0, 3, 2, 2, 1))
+    expect(toPicture(s)).toBe(draw(1, 1))
+  })
+
+  it('is cut by the clip on each side', () => {
+    const cut = (x: number, y: number, w: number, h: number) => {
+      const s = createScreen(6, 4)
+      s.withClip(x, y, w, h, () => blit(s, image(), 0, 0, 3, 2, 1, 1))
+      return toPicture(s)
+    }
+    expect(cut(2, 0, 4, 4)).toBe(
+      picture(`
+      ......
+      ..23..
+      ..56..
+      ......
+    `),
+    )
+    expect(cut(0, 0, 3, 4)).toBe(
+      picture(`
+      ......
+      .12...
+      .45...
+      ......
+    `),
+    )
+    expect(cut(0, 2, 6, 2)).toBe(
+      picture(`
+      ......
+      ......
+      .456..
+      ......
+    `),
+    )
+    expect(cut(0, 0, 6, 2)).toBe(
+      picture(`
+      ......
+      .123..
+      ......
+      ......
+    `),
+    )
+  })
+
+  it('applies camera and clip together', () => {
+    const s = createScreen(6, 4)
+    s.withCamera(1, 0, () =>
+      s.withClip(2, 1, 2, 1, () => blit(s, image(), 0, 0, 3, 2, 2, 1)),
+    )
+    expect(toPicture(s)).toBe(
+      picture(`
+      ......
+      .12...
+      ......
+      ......
+    `),
+    )
+  })
+
+  it('remaps colours and keeps transparency', () => {
+    const remap = new Uint8Array(256)
+    for (let c = 0; c < 256; c++) remap[c] = c
+    remap[2] = 8
+    remap[TRANSPARENT] = 9
+    const img = {
+      width: 3,
+      height: 2,
+      pixels: Uint8Array.from([1, 2, TRANSPARENT, 2, 5, 6]),
+    }
+    const s = createScreen(3, 2)
+    blit(s, img, 0, 0, 3, 2, 0, 0, false, false, remap)
+    expect(toPicture(s)).toBe(
+      picture(`
+      18.
+      856
+    `),
+    )
+  })
+})

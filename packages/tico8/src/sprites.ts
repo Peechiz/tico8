@@ -12,9 +12,36 @@ export interface IndexedImage {
   readonly pixels: Uint8Array
 }
 
+/**
+ * A recolouring: each key is a colour, its value the colour drawn in its
+ * place. Plain data, so one can be named and shared:
+ * `const icy = { [COLOR.red]: COLOR.blue }`.
+ */
+export type Swap = { readonly [from: number]: number }
+
 export interface DrawOptions {
   flipX?: boolean
   flipY?: boolean
+  /** Draw some colours as others. */
+  swap?: Swap
+  /** Draw every pixel in this one colour, as for a hit flash. */
+  flash?: number
+}
+
+/** Which cell of a sheet to draw, where, and how. */
+export interface CellDraw extends DrawOptions {
+  /** The cell, counted from 0, left to right then down. */
+  frame: number
+  /** Where the cell's top left corner goes. */
+  x: number
+  y: number
+}
+
+/** One pixel of one cell, with (0, 0) the cell's top left. */
+export interface CellPixel {
+  frame: number
+  x: number
+  y: number
 }
 
 /** One thing on screen made from a sheet. It holds how it looks, not where. */
@@ -23,6 +50,10 @@ export interface Sprite {
   frame: number
   flipX: boolean
   flipY: boolean
+  /** Draw some colours as others, until set back to undefined. */
+  swap: Swap | undefined
+  /** Draw every pixel in this one colour, until set back to undefined. */
+  flash: number | undefined
   /** Draw with the top left corner at a position. */
   draw(at: Readonly<Vec>): void
   draw(x: number, y: number): void
@@ -36,9 +67,20 @@ export interface Sheet {
   readonly frames: number
   /** Make a sprite that remembers its own frame and flips. */
   sprite(): Sprite
-  /** Draw one cell without making a sprite: for tiles and particles. */
-  draw(frame: number, at: Readonly<Vec>, options?: DrawOptions): void
-  draw(frame: number, x: number, y: number, options?: DrawOptions): void
+  /**
+   * Draw one cell without making a sprite, for tiles and particles:
+   * `tiles.draw({ frame: 3, x: 16, y: 8 })`.
+   */
+  draw(cell: CellDraw): void
+  /**
+   * Read one pixel of a cell: its colour, or undefined where the cell is
+   * see-through or the position is outside it.
+   */
+  pixel(at: CellPixel): number | undefined
+  /** Change one pixel of a cell. Every sprite using the sheet shows it. */
+  pixel(at: CellPixel & { color: number }): void
+  /** Make one pixel of a cell see-through. */
+  erase(at: CellPixel): void
 }
 
 /** A sheet whose picture can be set, and set again when the PNG changes. */
@@ -56,6 +98,36 @@ export function createSheet(
   let image: IndexedImage | undefined
   let columns = 0
   let frames = 0
+
+  // Reused by every swapped or flashed draw.
+  const table = new Uint8Array(256)
+
+  /** The remap for a draw's swap and flash, or undefined for the plain path. */
+  function remapFor(options?: DrawOptions): Uint8Array | undefined {
+    const flash = options?.flash
+    if (flash !== undefined) return table.fill(flash)
+    const swap = options?.swap
+    if (!swap) return undefined
+    for (let c = 0; c < 256; c++) table[c] = c
+    for (const key of Object.keys(swap)) {
+      const from = Number(key)
+      if (from >= 0 && from < 256) table[from] = swap[from]!
+    }
+    return table
+  }
+
+  /** Index into the image of a cell's pixel, or -1 if there is none. */
+  function locate(frame: number, x: number, y: number): number {
+    if (!image) return -1
+    const f = Math.floor(frame)
+    const px = Math.floor(x)
+    const py = Math.floor(y)
+    if (!(f >= 0 && f < frames)) return -1
+    if (!(px >= 0 && px < cellWidth && py >= 0 && py < cellHeight)) return -1
+    const col = (f % columns) * cellWidth + px
+    const row = Math.floor(f / columns) * cellHeight + py
+    return row * image.width + col
+  }
 
   function drawFrame(
     frame: number,
@@ -77,6 +149,7 @@ export function createSheet(
       y,
       options?.flipX,
       options?.flipY,
+      remapFor(options),
     )
   }
 
@@ -100,6 +173,8 @@ export function createSheet(
         frame: 0,
         flipX: false,
         flipY: false,
+        swap: undefined,
+        flash: undefined,
         draw(a: number | Readonly<Vec>, b?: number): void {
           const [x, y] = typeof a === 'number' ? [a, b!] : [a.x, a.y]
           drawFrame(sprite.frame, x, y, sprite)
@@ -107,14 +182,24 @@ export function createSheet(
       }
       return sprite
     },
-    draw(
-      frame: number,
-      a: number | Readonly<Vec>,
-      b?: number | DrawOptions,
-      c?: DrawOptions,
-    ): void {
-      if (typeof a === 'number') drawFrame(frame, a, b as number, c)
-      else drawFrame(frame, a.x, a.y, b as DrawOptions | undefined)
+    draw(cell) {
+      drawFrame(cell.frame, cell.x, cell.y, cell)
+    },
+    pixel: ((at: CellPixel & { color?: number }): number | undefined => {
+      const i = locate(at.frame, at.x, at.y)
+      const color = at.color
+      if (color === undefined) {
+        if (i < 0) return undefined
+        const value = image!.pixels[i]!
+        return value === TRANSPARENT ? undefined : value
+      }
+      if (i >= 0)
+        image!.pixels[i] = color === TRANSPARENT ? TRANSPARENT - 1 : color
+      return undefined
+    }) as Sheet['pixel'],
+    erase(at) {
+      const i = locate(at.frame, at.x, at.y)
+      if (i >= 0) image!.pixels[i] = TRANSPARENT
     },
   }
   return sheet

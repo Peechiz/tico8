@@ -53,7 +53,7 @@ describe('sheet and ready', () => {
     const { sheets, shown } = setup(load)
     const sheet = sheets.sheet(URL, 2, 2)
     expect(calls.map((call) => call.url)).toEqual([URL])
-    sheet.draw(0, 0, 0)
+    sheet.draw({ frame: 0, x: 0, y: 0 })
     expect(shown()).toBe(full('0'))
 
     let settled = false
@@ -65,7 +65,7 @@ describe('sheet and ready', () => {
 
     calls[0]!.resolve(solid(8))
     await ready
-    sheet.draw(0, 0, 0)
+    sheet.draw({ frame: 0, x: 0, y: 0 })
     expect(shown()).toBe(full('8'))
   })
 
@@ -98,7 +98,7 @@ describe('sheet and ready', () => {
     })
     const sheet = sheets.sheet(URL, 2, 2)
     await sheets.ready()
-    sheet.draw(0, 0, 0)
+    sheet.draw({ frame: 0, x: 0, y: 0 })
     expect(shown()).toBe(full('0'))
     expect(sheet.frames).toBe(0)
     expect(error).toHaveBeenCalledTimes(1)
@@ -165,9 +165,9 @@ describe('sheet and ready', () => {
     expect(second).not.toBe(first)
     await sheets.ready()
     await sheets.reload(URL)
-    first.draw(0, 0, 0)
+    first.draw({ frame: 0, x: 0, y: 0 })
     expect(shown()).toBe(full('8'))
-    second.draw(0, 0, 0)
+    second.draw({ frame: 0, x: 0, y: 0 })
     expect(shown()).toBe(full('a'))
   })
 })
@@ -220,7 +220,7 @@ describe('reload', () => {
     expect(error).toHaveBeenCalledTimes(2)
     expect(error.mock.calls[1]![0]).toContain('3x3')
 
-    sheet.draw(0, 0, 0)
+    sheet.draw({ frame: 0, x: 0, y: 0 })
     expect(shown()).toBe(full('8'))
     expect(sheet.frames).toBe(1)
   })
@@ -236,7 +236,7 @@ describe('reload', () => {
     const sheet = sheets.sheet(URL, 2, 2)
     await sheets.ready()
     await sheets.reload(URL)
-    sheet.draw(0, 0, 0)
+    sheet.draw({ frame: 0, x: 0, y: 0 })
     expect(shown()).toBe(full('9'))
     expect(error).not.toHaveBeenCalled()
   })
@@ -254,7 +254,7 @@ describe('reload', () => {
     await second
     calls[1]!.resolve(solid(9))
     await first
-    sheet.draw(0, 0, 0)
+    sheet.draw({ frame: 0, x: 0, y: 0 })
     expect(shown()).toBe(full('a'))
   })
 
@@ -274,7 +274,7 @@ describe('reload', () => {
     await second
     expect(calls).toHaveLength(3)
     expect(error).not.toHaveBeenCalled()
-    sheet.draw(0, 0, 0)
+    sheet.draw({ frame: 0, x: 0, y: 0 })
     expect(shown()).toBe(full('a'))
   })
 })
