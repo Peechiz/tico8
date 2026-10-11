@@ -4,8 +4,16 @@ A Pico-8-inspired fantasy console. `01-spec.md` says what it is;
 `plan/README.md` lists the slices that build it, in order.
 
 Every slice is a **tracer bullet**: a thin path through engine, dev tool and
-example game that ends with something visible in `examples/demo` and a Vitest
-test that checks the pixel buffer.
+example game that ends with something visible in the slice's example and a
+Vitest test that checks the pixel buffer.
+
+## Examples
+
+Each slice adds its own game, `examples/<number>-<name>` (`examples/03-drawing`),
+and that is what a slice file means by "the demo". Earlier examples are kept
+as working samples: never rewrite one for a new feature, and when an API
+change breaks one, port it. `pnpm dev` runs the newest; `pnpm dev 02-sprite`
+runs one by name.
 
 ## Working a slice
 
