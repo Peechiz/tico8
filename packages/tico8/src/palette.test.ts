@@ -44,9 +44,9 @@ describe('readPalette', () => {
 
   it('refuses a palette it cannot use, and names the colour', () => {
     const bad = (written: unknown) => () => readPalette(written as never)
-    expect(bad({})).toThrow('tico8: a palette needs at least one colour')
+    expect(bad({})).toThrow('a palette needs at least one colour')
     expect(bad({ ink: 'navy' })).toThrow(
-      `tico8: the palette colour "ink" must be a hex colour such as '#1b1b2f', got 'navy'`,
+      `the palette colour "ink" must be a hex colour such as '#1b1b2f', got 'navy'`,
     )
     expect(bad({ ink: 7 })).toThrow('the palette colour "ink" must be a hex')
     expect(bad({ '2nd': '#000' })).toThrow(

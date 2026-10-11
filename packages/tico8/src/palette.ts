@@ -49,7 +49,7 @@ export const PICO8_NAMES = {
 } as const
 
 /**
- * Turn a palette as a game writes it, names and hex colours in palette
+ * Turn a palette as a config writes it, names and hex colours in palette
  * order, into its colours and each name's place among them. Throws for one
  * that cannot be used, naming the colour at fault.
  */
@@ -59,16 +59,16 @@ export function readPalette(written: Readonly<Record<string, string>>): {
 } {
   if (typeof written !== 'object' || written === null) {
     throw new Error(
-      "tico8: a palette is names and colours, such as { ink: '#1b1b2f' }",
+      "a palette is names and colours, such as { ink: '#1b1b2f' }",
     )
   }
   const entries = Object.entries(written)
   if (entries.length === 0) {
-    throw new Error('tico8: a palette needs at least one colour')
+    throw new Error('a palette needs at least one colour')
   }
   if (entries.length > MAX_COLORS) {
     throw new Error(
-      `tico8: the palette has ${entries.length} colours, and the screen ` +
+      `the palette has ${entries.length} colours, and the screen ` +
         `can show ${MAX_COLORS} at most`,
     )
   }
@@ -80,7 +80,7 @@ export function readPalette(written: Readonly<Record<string, string>>): {
     // in, so the palette's order would not be the code's.
     if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name)) {
       throw new Error(
-        `tico8: the palette name "${name}" cannot be used: a name is ` +
+        `the palette name "${name}" cannot be used: a name is ` +
           'letters and digits, starting with a letter',
       )
     }
@@ -98,7 +98,7 @@ function readHex(name: string, hex: unknown): Rgb {
   if (!match) {
     const got = typeof hex === 'string' ? `'${hex}'` : String(hex)
     throw new Error(
-      `tico8: the palette colour "${name}" must be a hex colour such as ` +
+      `the palette colour "${name}" must be a hex colour such as ` +
         `'#1b1b2f', got ${got}`,
     )
   }

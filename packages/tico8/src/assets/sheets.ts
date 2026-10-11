@@ -1,10 +1,4 @@
-import {
-  display,
-  colors as gameColors,
-  onPaletteChange,
-  palette,
-  settings,
-} from '../console.ts'
+import { display, colors as gameColors, palette, settings } from '../console.ts'
 import { MAX_COLORS, type Rgb } from '../palette.ts'
 import type { Screen } from '../screen.ts'
 import type { LoadableSheet, Sheet } from '../sprites.ts'
@@ -178,11 +172,6 @@ const sheets = createSheets({
   paletteSize: () => gameColors.size,
   load: loadPixels,
   warnOffPalette: settings.warnOffPalette,
-})
-
-// Pictures hold colour numbers, so a new palette means matching them again.
-onPaletteChange(() => {
-  sheets.reloadAll()
 })
 
 /**

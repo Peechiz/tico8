@@ -1,6 +1,6 @@
-import { colors, display, pad, setPalette } from './console.ts'
-import type { Input } from './input.ts'
-import { PICO8_NAMES, readPalette } from './palette.ts'
+import { colors, display, pad } from './console.ts'
+import type { Input } from './input/types.ts'
+import { PICO8_NAMES } from './palette.ts'
 import type { Rect, Shape } from './shapes.ts'
 import { createShapes, drawLine, fillShape, strokeShape } from './shapes.ts'
 import type { Swap } from './sprites.ts'
@@ -8,7 +8,17 @@ import { FONT } from './text/font.ts'
 import { createText } from './text/text.ts'
 import type { Vec } from './vec.ts'
 
-export type { Button, ButtonName, Input } from './input.ts'
+export type {
+  Actions,
+  Binding,
+  Button,
+  ButtonName,
+  ExtrasInput,
+  Input,
+  KeyName,
+  Mouse,
+  MouseInput,
+} from './input/types.ts'
 export type { Game } from './loop.ts'
 export type {
   Circle,
@@ -33,38 +43,19 @@ type Point = Readonly<Vec>
 
 /**
  * Pico-8's sixteen colours by name: `COLOR.red`. Each is the colour's
- * palette index. A game with a palette of its own makes its own `COLOR`
- * with `palette`.
+ * palette index. A game with a palette of its own imports `COLOR` from its
+ * `tico8.config.ts` instead.
  */
 export const COLOR = PICO8_NAMES
-
-/**
- * Give the game its own palette, and get its colours back by name. Write
- * it once, in a file of its own, and import `COLOR` from there:
- *
- *     export const COLOR = palette({
- *       ink: '#1b1b2f',
- *       moss: '#3a5a40',
- *     })
- *
- * The colours are numbered in the order written, so the first is colour 0.
- * A colour is `#rrggbb` or `#rgb`. This replaces Pico-8's palette whole.
- */
-export function palette<const T extends Readonly<Record<string, string>>>(
-  written: T,
-): { readonly [Name in keyof T]: number } {
-  const { colors: list, names } = readPalette(written)
-  setPalette(list)
-  return names as { readonly [Name in keyof T]: number }
-}
 
 /** The screen's size in game pixels. Use these, never a hardcoded 128. */
 export const SCREEN: { readonly width: number; readonly height: number } =
   display
 
 /**
- * The standard pad, read from the keyboard: `input.left.held`,
- * `input.a.pressed`, `input.dir`.
+ * The standard pad, read from the keyboard and every controller:
+ * `input.left.held`, `input.a.pressed`, `input.dir`. A game with actions
+ * of its own imports `input` from its `tico8.config.ts` instead.
  */
 export const input: Input = pad.input
 

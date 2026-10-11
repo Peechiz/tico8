@@ -3,6 +3,8 @@ import type { Screen } from './screen.ts'
 import { toRgba } from './screen.ts'
 
 export interface Host {
+  /** The element showing the screen, for the mouse to measure. */
+  readonly canvas: HTMLCanvasElement
   /** Copy the screen's pixels to the canvas. */
   present(): void
   /** Remove the canvas and every listener. */
@@ -62,6 +64,7 @@ export function mount(
   window.addEventListener('resize', resize)
 
   return {
+    canvas,
     present() {
       toRgba(screen, palette, image.data)
       context.putImageData(image, 0, 0)
