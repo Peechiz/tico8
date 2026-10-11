@@ -230,7 +230,39 @@ hero.draw(player.pos)              // draw
 ## Text and UI
 
 - **In-game text:** one built-in pixel font, with lower-case letters, drawn
-  into the pixel screen.
+  into the pixel screen. The font is Tom Thumb: 3x5 letters in a 4x6 cell,
+  so 32 characters fit across the standard screen.
+  - **Characters:** ASCII, the Western European accented letters the font
+    comes with, and game symbols typed straight into a string:
+    `♥ ● ★ ♪ ← ↑ → ↓` and the pad buttons `Ⓐ Ⓑ Ⓧ Ⓨ`.
+  - **A one-off:** `text(string, { x, y, color, align })` draws it now.
+    `text.measure(string)` gives its width and height.
+  - **A value:** `label({ x, y, text, color, align })` holds its place and
+    look as a shape does, with `draw()` and `bounds`, a rect that can be
+    filled behind it or tested for a hit.
+  - `align` is `'left'`, `'center'` or `'right'` about `x`, line by line;
+    `\n` starts a new line, and nothing wraps on its own. Text is white
+    unless given a colour, and obeys camera and clip like anything else
+    drawn.
+  - A line is 6 pixels tall, the sixth row being where `g` and `y` hang.
+    Most characters are 3 wide with a 1 pixel gap; symbols are 5 or 7.
+
+```ts
+const title = label({
+  x: SCREEN.width / 2,
+  y: 40,
+  text: 'Game Over',
+  color: COLOR.red,
+  align: 'center',
+})
+
+export function draw() {
+  text(`♥ ${hp}  ● ${coins}`, { x: 2, y: 2 })
+  fill(title.bounds, COLOR.black)
+  title.draw()
+}
+```
+
 - **UI layer (provisional):** an official HTML layer above the game screen
   where menus, dialogue and HUD are written in JSX and CSS. tico8 ships its
   font as a web font, the palette as CSS variables, and scales the layer so
