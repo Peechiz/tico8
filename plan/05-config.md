@@ -27,6 +27,9 @@ The demo's config file sets 160x144, a replaced palette with its own colour name
   the spec)
 - Update rate
 - Reload on config change
+- A palette of more than 16 colours
+- An opt-in warning for PNG colours outside the palette (the runtime already
+  counts them; see `reportOffPalette` in `src/assets/sheets.ts`)
 
 ## Check
 

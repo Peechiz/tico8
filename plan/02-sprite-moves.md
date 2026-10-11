@@ -20,47 +20,47 @@ and vectors.
 Left for later slices: named actions, controllers and mouse (06); changing a
 sprite's pixels at run time (03).
 
-## Decide first
+## Decided
 
-- Where a sheet declares its cell size: file name, config entry, or a file
-  beside the PNG. Listed under "Still to decide" in the spec.
-- What happens to a PNG colour that is not in the palette: nearest palette
-  colour, or an error naming the file and pixel.
+- **Cell size:** in the file name. `player.png` is 8x8, `player.16.png` is
+  16x16, `player.16x24.png` is 16 wide and 24 tall. All import as `player`.
+- **Off-palette colours:** rendered as painted. Each gets a colour number
+  of its own after the palette's. See "Imported art" in the spec.
 
 ## Tasks
 
-- [ ] **1. Contract** *(contract)*. Types for a sheet, a sprite instance and
-  the stateless one-off draw; the standard pad's directions and four buttons
-  with held and just-pressed; the shape of the generated `sprites.ts`.
-  Owns: `src/index.ts`, `src/sprites.ts` (types only), `src/input.ts` (types
-  only). Waits on: "Decide first".
-- [ ] **2. PNG to indexed.** Decode a PNG into palette indices plus a
-  transparency mask taken from the PNG's alpha, split into cells of the
-  sheet's size. Runs in the browser and in tests.
-  Owns: `src/assets/png.ts`, its test and fixture PNGs. Waits on: 1.
-- [ ] **3. Blit.** Copy one cell into the pixel buffer at a position, with
-  flip on each axis, transparent pixels skipped, and cells partly off screen
+- [x] **1. Contract** *(contract)*. Types for a sheet, a sprite instance and
+  the stateless one-off draw; the standard pad with held, pressed and
+  released plus a direction vector; signatures for every file below. The lead
+  also pre-wires `run.ts`, `console.ts`, `index.ts`, `vite.ts` and the loop's
+  before-update hook.
+  Owns: `src/index.ts`, type declarations in every file below.
+- [x] **2. Pixels to indexed.** Turn RGBA pixels into palette indices with a
+  transparent marker, counting off-palette pixels; fetch and decode a PNG to
+  RGBA in the browser, exactly as stored.
+  Owns: `src/assets/png.ts`, its test. Waits on: 1.
+- [x] **3. Blit.** Copy a rectangle of an indexed image into the pixel buffer,
+  with flip on each axis, transparent pixels skipped, and anything off screen
   cut at the edge.
   Owns: `src/blit.ts`, its test. Waits on: 1.
-- [ ] **4. Sheets and sprites.** A sheet built from decoded cells; `sprite()`
-  returns an instance holding frame and flips, drawn at a position passed in;
-  the one-off draw.
+- [x] **4. Sheets and sprites.** A sheet over an indexed image; `sprite()`
+  returns an instance holding frame and flips, drawn at a position passed in
+  as `x, y` or one value; the one-off draw.
   Owns: `src/sprites.ts`, its test. Waits on: 1.
-- [ ] **5. Generated references.** The Vite plugin watches the project's
-  `sprites/` folder and writes a real `sprites.ts` into the project whenever
-  a PNG is added, removed or renamed.
+- [x] **5. Generated references.** The Vite plugin reads the project's
+  `sprites/` folder and writes a real `sprites.ts` into the project at start
+  and whenever a PNG is added, removed or renamed.
   Owns: `src/vite/sprites.ts`, its test. Waits on: 1.
-- [ ] **6. Live swap.** Saving a PNG replaces that sheet's pixels in the
-  running game; `init` does not run again and existing sprite instances show
-  the new art.
-  Owns: `src/vite/assets-hmr.ts`, `src/assets/reload.ts`. Waits on: 1.
-- [ ] **7. Keyboard pad.** Arrow keys and four button keys, sampled once per
-  update so held and just-pressed are stable within an update.
+- [x] **6. Loading and live swap.** Sheets load before `init`. Saving a PNG
+  replaces that sheet's pixels in the running game; `init` does not run again
+  and existing sprite instances show the new art.
+  Owns: `src/assets/sheets.ts`, `src/vite/assets-hmr.ts`. Waits on: 1.
+- [x] **7. Keyboard pad.** Arrow keys and four button keys, sampled once per
+  update so held and pressed are stable within an update.
   Owns: `src/input.ts`, its test. Waits on: 1.
-- [ ] **8. Demo.** Add `player.png` and move it in `main.ts`.
+- [x] **8. Demo.** Lead. Add `player.png` and move it in `main.ts`.
   Owns: `examples/demo/`. Waits on: 1.
-- [ ] **9. Wire up.** Lead only. Register the plugin parts in `src/vite.ts`,
-  feed input into the loop, run the demo.
+- [x] **9. Wire up.** Lead only. Run the demo against the finished parts.
   Waits on: 2 to 8.
 
 ## Check
@@ -75,4 +75,37 @@ sprite's pixels at run time (03).
 
 ## Decisions made
 
-None yet.
+- **Names:** `sheet.sprite()`, `sheet.draw(frame, x, y, { flipX, flipY })`,
+  `sheet.cell.width`, `sheet.frames`; a sprite has `frame`, `flipX`, `flipY`
+  and `draw`. `input.left.held`, `.pressed`, `.released` for the four
+  directions and `a`, `b`, `x`, `y`; `input.dir` is the held directions as a
+  vector.
+- **Frames** count from 0, left to right, then down. A frame outside the
+  sheet draws nothing.
+- **Sheet names** are the file name in camelCase (`big-boss.png` is
+  `bigBoss`). Two files giving one name, a bad cell size or an unusable name
+  are skipped with a warning.
+- **Generated `sprites.ts`** is written at dev start and when the folder's
+  file list changes. The demo's copy is checked in so `pnpm typecheck` works
+  without the dev server.
+- **PNG paths:** the generated file refers to `/sprites/<file>`, which the
+  dev server serves. Export (slice 12) has to pack them.
+- **Loading:** every sheet loads before `init`. A PNG that fails to load or
+  does not fit its cell size is reported in the browser console and the
+  sheet stays empty, or keeps its old picture on a live swap.
+- **Colours:** at most 255 at once; the colour table only grows during a
+  dev session, so many repaints in new off-palette colours can fill it
+  until the page is reloaded.
+- **Keys:** arrows, and Z, X, A, S for a, b, x, y, as a stand-in until
+  slice 06.
+- **Typecheck fix:** the root `tsconfig` did not cover `examples/` until
+  this slice; it does now.
+
+## Not checked
+
+- A real keyboard: key events were sent by script.
+- Editors that save by writing a temporary file and renaming it over the PNG.
+- Sheets in subfolders of `sprites/` (ignored for now), and any browser
+  other than Chromium.
+- `player.16.png` style names in the running demo; they are covered by tests
+  only.

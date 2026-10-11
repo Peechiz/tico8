@@ -12,7 +12,8 @@ The demo jumps on `input.jump.pressed`, bound in config, from the keyboard and f
 
 ## Decide first
 
-- Default keyboard keys for the four buttons.
+- Default keyboard keys for the four buttons. Slice 02 used Z, X, A and S
+  for a, b, x and y as a stand-in (`KEY_MAP` in `src/input.ts`).
 - How one action binds to both a pad button and a key.
 
 ## Task areas

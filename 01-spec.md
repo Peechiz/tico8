@@ -16,6 +16,8 @@ later steps. Code samples are illustrative, not final signatures.
 - **The project is a folder of plain files.** Every tool reads and writes the
   same files; assets are editable in external tools and diff in git.
 - **What keeps games small** is the screen and the palette, not a size limit.
+  The palette is held by the tools, not the runtime: tico8's editor paints
+  in it, and art made elsewhere is shown as painted.
 
 ## Naming
 
@@ -46,8 +48,9 @@ free to differ.
 | | Decision |
 |---|---|
 | Resolution | 128x128 standard. Opt-in presets: 160x144 and 240x136, set once in project config. Game code uses `SCREEN.width` and `SCREEN.height`, never a hardcoded 128. |
-| Colour model | Indexed, 16 colours on screen. The engine draws into its own pixel buffer. |
-| Palette | A project may replace the 16 colours. New projects start with Pico-8's palette. |
+| Colour model | Indexed. The engine draws into its own pixel buffer of colour numbers, which is what makes palette swap possible. |
+| Imported art | A PNG keeps the colours it was painted in. A colour outside the palette gets a number of its own after the palette's, with no name. The screen can show 255 colours at once; past that a new colour takes the nearest existing one, and the dev tool always warns. A warning for any colour outside the palette is an opt-in config setting. |
+| Palette | 16 colours by default; a project may replace them, or define more, in config. New projects start with Pico-8's palette. The palette is what the built-in sprite editor offers and what `COLOR` names. |
 | Colour names | Colours are passed by name (`COLOR.red`), not as bare numbers. Each name is a palette index, so a number still works and colour arithmetic stays possible. The names are declared with the palette in project config and generated as typed references; until config exists the engine ships Pico-8's sixteen names. |
 
 ## Game loop
@@ -65,7 +68,8 @@ free to differ.
 
 - Any number of PNGs in a sprites folder. No single mandatory sheet.
 - Every PNG is a **grid sheet**: 8x8 cells by default, with a per-sheet cell
-  size allowed in multiples of 8. A 16x16 character sheet makes each frame one
+  size allowed in multiples of 8, given in the file name: `player.16.png` is
+  16x16, `player.16x24.png` is 16 wide and 24 tall. Both import as `player`. A 16x16 character sheet makes each frame one
   cell. Tilesets used by maps stay 8x8.
 - Sheets are **typed references generated from the folder** by the dev tool, so
   a missing sheet is a compile error and names autocomplete.
@@ -73,7 +77,8 @@ free to differ.
   (frame, flip). Position is passed when drawing. The engine never draws it
   for you.
 - A stateless one-off draw stays available for tiles and particles.
-- Transparency comes from the PNG itself.
+- Transparency comes from the PNG itself: a pixel less than half opaque is
+  see-through.
 
 ```ts
 import { player } from './sprites'
@@ -318,8 +323,6 @@ blocked by a decision above.
 
 **In the asset-format step**
 - Whether map and tileset files should be openable in Tiled.
-- Where a sheet declares its cell size (file name, config entry, or a file
-  beside the PNG).
 - The flags file format, which may follow from the Tiled answer.
 
 **Before public release**

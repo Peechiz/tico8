@@ -21,6 +21,8 @@ The demo draws a scene with every shape, scrolls it with the camera, cuts a wind
 - Clip rectangle
 - Palette swap
 - Read a screen pixel
+- Colour numbers above the palette: `pixel` and `clear` wrap colours to
+  0-15 today, but imported art can use numbers up to 254
 - Change a sprite's pixels at run time
 
 ## Check

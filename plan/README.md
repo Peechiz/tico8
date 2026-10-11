@@ -8,7 +8,7 @@ Slices whose "needs" are all `done` can run in parallel.
 | # | Slice | Needs | Size | Status | You can see |
 |---|---|---|---|---|---|
 | 01 | [Skeleton](01-skeleton.md) | none | medium | done | `tico8 dev` shows a dot moving on a 128x128 screen; saving the file restarts it |
-| 02 | [Sprite moves](02-sprite-moves.md) | 01 | medium | todo | A PNG sprite moved with the arrow keys; repainting the PNG shows up live |
+| 02 | [Sprite moves](02-sprite-moves.md) | 01 | medium | done | A PNG sprite moved with the arrow keys; repainting the PNG shows up live |
 | 03 | [Drawing](03-drawing.md) | 02 | medium | todo | Shapes, camera, clip and palette swap in the demo |
 | 04 | [Text](04-text.md) | 02 | small | todo | A score drawn in the pixel font |
 | 05 | [Config](05-config.md) | 02 | small | todo | The demo switched to 160x144 with its own palette |
