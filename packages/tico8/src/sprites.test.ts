@@ -304,3 +304,49 @@ describe('sheet pixels', () => {
     expect(sheet.pixel({ frame: 0, x: 0, y: 0 })).toBeUndefined()
   })
 })
+
+describe('a sprite and its place', () => {
+  it('draws itself where it is', () => {
+    const { screen, sheet } = setup()
+    const s = sheet.sprite({ x: 2, y: 1, frame: 2 })
+    s.draw()
+    s.x = 6
+    s.y = 0
+    s.draw()
+    expect(toPicture(screen)).toBe(
+      picture(`
+      ......44
+      ..44..46
+      ..46....
+      ........
+    `),
+    )
+  })
+
+  it('starts at 0, 0 and can be drawn elsewhere without moving', () => {
+    const { screen, sheet } = setup()
+    const s = sheet.sprite()
+    s.draw(4, 2)
+    s.draw({ x: 0, y: 2 })
+    expect([s.x, s.y]).toEqual([0, 0])
+    expect(toPicture(screen)).toBe(
+      picture(`
+      ........
+      ........
+      11..11..
+      11..11..
+    `),
+    )
+  })
+
+  it('is a rect the size of its cell', () => {
+    const { sheet } = setup()
+    const s = sheet.sprite({ x: 3, y: 1 })
+    expect({ x: s.x, y: s.y, width: s.width, height: s.height }).toEqual({
+      x: 3,
+      y: 1,
+      width: 2,
+      height: 2,
+    })
+  })
+})

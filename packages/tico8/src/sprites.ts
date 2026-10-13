@@ -44,8 +44,18 @@ export interface CellPixel {
   y: number
 }
 
-/** One thing on screen made from a sheet. It holds how it looks, not where. */
+/**
+ * One thing on screen made from a sheet. It holds where it is and how it
+ * looks, and with its `width` and `height` it is a rect, so it can be
+ * handed to anything that takes one: `walls.overlaps(hero, 'solid')`.
+ */
 export interface Sprite {
+  /** Where its top left corner is. */
+  x: number
+  y: number
+  /** The size of its cell in pixels. */
+  readonly width: number
+  readonly height: number
   /** Which cell of the sheet to show, counted from 0, left to right then down. */
   frame: number
   flipX: boolean
@@ -54,10 +64,17 @@ export interface Sprite {
   swap: Swap | undefined
   /** Draw every pixel in this one colour, until set back to undefined. */
   flash: number | undefined
-  /** Draw with the top left corner at a position. */
+  /** Draw it where it is. */
+  draw(): void
+  /** Draw it somewhere else, without moving it. */
   draw(at: Readonly<Vec>): void
   draw(x: number, y: number): void
 }
+
+/** What a new sprite can be given to start with: `{ x: 20, y: 60 }`. */
+export type SpriteInit = Partial<
+  Pick<Sprite, 'x' | 'y' | 'frame' | 'flipX' | 'flipY' | 'swap' | 'flash'>
+>
 
 /** A PNG from the sprites folder, cut into a grid of cells. */
 export interface Sheet {
@@ -65,8 +82,11 @@ export interface Sheet {
   readonly cell: { readonly width: number; readonly height: number }
   /** How many cells the sheet holds. */
   readonly frames: number
-  /** Make a sprite that remembers its own frame and flips. */
-  sprite(): Sprite
+  /**
+   * Make a sprite that remembers its own place, frame and flips:
+   * `player.sprite({ x: 20, y: 60 })`. It starts at 0, 0 if not told.
+   */
+  sprite(init?: SpriteInit): Sprite
   /**
    * Draw one cell without making a sprite, for tiles and particles:
    * `tiles.draw({ frame: 3, x: 16, y: 8 })`.
@@ -168,15 +188,21 @@ export function createSheet(
       columns = next.width / cellWidth
       frames = columns * (next.height / cellHeight)
     },
-    sprite() {
+    sprite(init) {
       const sprite: Sprite = {
+        x: 0,
+        y: 0,
+        width: cellWidth,
+        height: cellHeight,
         frame: 0,
         flipX: false,
         flipY: false,
         swap: undefined,
         flash: undefined,
-        draw(a: number | Readonly<Vec>, b?: number): void {
-          const [x, y] = typeof a === 'number' ? [a, b!] : [a.x, a.y]
+        ...init,
+        draw(a?: number | Readonly<Vec>, b?: number): void {
+          const at = a ?? sprite
+          const [x, y] = typeof at === 'number' ? [at, b!] : [at.x, at.y]
           drawFrame(sprite.frame, x, y, sprite)
         },
       }
