@@ -142,9 +142,14 @@ and flashes.
   cell. Tilesets used by maps stay 8x8.
 - Sheets are **typed references generated from the folder** by the dev tool, so
   a missing sheet is a compile error and names autocomplete.
-- A **sprite instance** is made from a sheet and holds its own appearance
-  (frame, flip, colour swap, flash). Position is passed when drawing. The engine never draws it
+- A **sprite instance** is made from a sheet and holds its own place (`x`,
+  `y`) and appearance (frame, flip, colour swap, flash), as a shape or a
+  label does. `hero.draw()` draws it where it is. The engine never draws it
   for you.
+- **A sprite is a rect:** it has `width` and `height`, its cell's size, so it
+  can be handed to anything that takes a rect or a position, such as
+  `walls.overlaps(hero, 'solid')` or `stroke(hero, COLOR.green)`.
+  `hero.draw(x, y)` draws it somewhere else without moving it.
 - A stateless one-off draw stays available for tiles and particles:
   `tiles.draw({ frame: 3, x: 16, y: 8 })`.
 - Transparency comes from the PNG itself: a pixel less than half opaque is
@@ -153,12 +158,13 @@ and flashes.
 ```ts
 import { player } from './sprites'
 
-const hero = player.sprite()   // init
+const hero = player.sprite({ x: 20, y: 60 })   // init
 
-hero.flipX = facingLeft        // update
+hero.x += input.dir.x                          // update
+hero.flipX = facingLeft
 hero.frame = 3
 
-hero.draw(x, y)                // draw
+hero.draw()                                    // draw
 ```
 
 ## Maps
@@ -167,24 +173,82 @@ hero.draw(x, y)                // draw
   references.
 - A map is a grid of tile numbers saved as text, not a picture. Each map uses
   one 8x8 tileset.
+- **A map file is JSON, `maps/<name>.json`,** in tico8's own shape, not
+  Tiled's. It names its tileset and holds its layers by name. A layer is a
+  list of rows and a row is one line of text: tile numbers apart by spaces,
+  `.` for an empty cell. A tile's number is its frame in the tileset, counted
+  from 0.
 - A map holds **named, stackable tile layers** of the same size. Each layer is
   drawn explicitly, so the player goes between layers by call order in `draw`.
 - **Tile flags:** a small set of named booleans declared per tileset (`solid`,
-  `ladder`, ...), typed, stored in a text file beside the tileset PNG.
-- **Placing objects:** marker tiles on a layer that is never drawn, plus a
-  helper to walk a layer and get each tile with its position.
+  `ladder`, ...), stored beside the tileset PNG as `<tileset>.flags.json`.
+  Each flag lists the tiles that have it, so every map using the tileset
+  shares one list.
+- **Layer and flag names are typed by inference** from the two JSON files.
+  The generated `maps.ts` only lists the map files, as `sprites.ts` lists
+  the PNGs; renaming a layer or a flag rewrites nothing.
+- **Placing objects:** marker tiles on a layer that is never drawn, and
+  `layer.tiles()`, which gives each tile with its position, or only those
+  with one flag: `room1.markers.tiles('spawn')`.
+- **A cell is a column and a row; a position is pixels.** `tile(column,
+  row)` and `set(column, row, frame)` take a cell. `tileAt`, `overlaps` and
+  `draw` take pixels, as `x, y` or one value, counted from the layer's top
+  left: reading a layer takes it to be drawn at 0, 0.
+- **A tile is its frame and its flags,** `{ frame, solid, ... }`. An empty
+  cell, and one outside the layer, has `frame: undefined` and every flag
+  false.
+- **`layer.overlaps(rect, flag)`** says whether a hitbox touches a tile
+  with a flag, which is how a game is stopped by walls. It only answers yes
+  or no: moving and stopping are the game's own code, built from small
+  pieces. Nothing like Godot's move-and-slide is built in.
+- **A map and its layers know their size:** `columns` and `rows` in cells,
+  `width` and `height` in pixels. A layer or a flag cannot take one of
+  those names, or a tile's own (`frame`, `x`, `y`, `column`, `row`).
+- **Changing a cell lasts until the game restarts** or the map file is
+  saved: both put the map back as its file has it.
+- **Saving a map or flags file swaps it into the running game** without a
+  restart. A file that cannot be read as one is reported in the browser
+  console and the map keeps what it had.
+- **`maps.ts` is written only for a project with a `maps` folder.** A map
+  whose name, JSON or tileset cannot be used is left out of it with a
+  warning in the dev tool's terminal.
 - **Rearranging tiles** in a tileset is a job for tico8's editor, which can
   move flags and update maps together. External tools are for painting pixels.
+
+```json
+// maps/room1.json
+{
+  "tiles": "tiles",
+  "layers": {
+    "ground": [
+      " 1  1  1  1  1",
+      " 1  2  2  2  1",
+      " 1  1  1  1  1"
+    ],
+    "walls": [
+      " 4  4  4  4  4",
+      " 4  .  .  .  4",
+      " 4  4  .  4  4"
+    ]
+  }
+}
+
+// sprites/tiles.flags.json
+{ "solid": [4, 5, 6, 12], "ladder": [7], "spawn": [32] }
+```
 
 ```ts
 import { room1 } from './maps'
 
-room1.ground.draw(0, 0)
-room1.walls.draw(0, 0)
-hero.draw(x, y)
-room1.front.draw(0, 0)
+room1.ground.draw()
+room1.walls.draw()
+hero.draw()
+room1.front.draw()
 
-if (room1.walls.tile(tx, ty).solid) { /* blocked */ }
+if (room1.walls.tile(column, row).solid) { /* blocked */ }
+if (room1.walls.overlaps(hero, 'solid')) { /* blocked */ }
+
+const [start] = room1.markers.tiles('spawn')
 ```
 
 ## Input
@@ -493,6 +557,7 @@ blocked by a decision above.
 - A real object layer in the map editor: named objects at pixel positions,
   with properties.
 - Reading `.aseprite` files directly, including its tileset data.
+- Importing maps made in Tiled.
 
 **Drawing and text**
 - Fill patterns (two-colour dither fills).
@@ -502,10 +567,6 @@ blocked by a decision above.
 - A built-in synth, with effects described as a few numbers in a text file.
 
 ## Still to decide
-
-**In the asset-format step**
-- Whether map and tileset files should be openable in Tiled.
-- The flags file format, which may follow from the Tiled answer.
 
 **Before public release**
 - The final default palette, after checking Lexaloffle's terms for reusing
