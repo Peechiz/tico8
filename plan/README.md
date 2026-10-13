@@ -13,7 +13,7 @@ Slices whose "needs" are all `done` can run in parallel.
 | 04 | [Text](04-text.md) | 02 | small | done | A score drawn in the pixel font |
 | 05 | [Config](05-config.md) | 02 | small | done | The demo switched to 160x144 with its own palette |
 | 06 | [Input](06-input.md) | 05 | medium | done | Jump on a named action, from keyboard and controller |
-| 07 | [Maps](07-maps.md) | 02 | medium | todo | A room with layers the sprite walks between and solid walls |
+| 07 | [Maps](07-maps.md) | 02 | medium | done | A room with layers the sprite walks between and solid walls |
 | 08 | [Audio](08-audio.md) | 02 | small | todo | A sound played on a button press |
 | 09 | [Save](09-save.md) | 02 | small | todo | A high score that survives a page reload |
 | 10 | [UI layer](10-ui.md) | 04, 06 | medium | todo | A JSX HUD and a menu driven by the pad |
