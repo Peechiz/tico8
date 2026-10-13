@@ -1,4 +1,4 @@
-# 16 — Scaffold
+# 17 — Scaffold
 
 Stub. Detail the tasks before starting (see `../AGENTS.md`, step 2).
 

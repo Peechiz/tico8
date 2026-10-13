@@ -89,7 +89,7 @@ sprite's pixels at run time (03).
   file list changes. The demo's copy is checked in so `pnpm typecheck` works
   without the dev server.
 - **PNG paths:** the generated file refers to `/sprites/<file>`, which the
-  dev server serves. Export (slice 12) has to pack them.
+  dev server serves. Export (slice 13) has to pack them.
 - **Loading:** every sheet loads before `init`. A PNG that fails to load or
   does not fit its cell size is reported in the browser console and the
   sheet stays empty, or keeps its old picture on a live swap.

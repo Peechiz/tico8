@@ -1,4 +1,4 @@
-# 14 — Map editor
+# 15 — Map editor
 
 Stub. Detail the tasks before starting (see `../AGENTS.md`, step 2).
 

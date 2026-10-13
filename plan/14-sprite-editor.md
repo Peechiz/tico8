@@ -1,4 +1,4 @@
-# 13 — Sprite editor
+# 14 — Sprite editor
 
 Stub. Detail the tasks before starting (see `../AGENTS.md`, step 2).
 

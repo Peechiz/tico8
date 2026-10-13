@@ -261,5 +261,5 @@ export const room1 = map({
 - A map file with `?` or `#` in its name, which Vite may read as a query.
 - A map that is refused, in the browser; only tests cover the report.
 - Any browser other than Chromium.
-- Export (slice 12) does not exist yet; when built it has to pack maps
+- Export (slice 13) does not exist yet; when built it has to pack maps
   and flags.

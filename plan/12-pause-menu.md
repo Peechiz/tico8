@@ -1,4 +1,4 @@
-# 11 — Pause menu
+# 12 — Pause menu
 
 Stub. Detail the tasks before starting (see `../AGENTS.md`, step 2).
 
