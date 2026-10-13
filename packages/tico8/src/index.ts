@@ -20,6 +20,7 @@ export type {
   MouseInput,
 } from './input/types.ts'
 export type { Game } from './loop.ts'
+export type { Layer, PlacedTile, Tile, TileMap } from './maps/types.ts'
 export type {
   Circle,
   Drawn,
@@ -28,7 +29,13 @@ export type {
   Rect,
   Shape,
 } from './shapes.ts'
-export type { DrawOptions, Sheet, Sprite, Swap } from './sprites.ts'
+export type {
+  DrawOptions,
+  Sheet,
+  Sprite,
+  SpriteInit,
+  Swap,
+} from './sprites.ts'
 export type {
   Align,
   DrawnLabel,

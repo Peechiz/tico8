@@ -1,3 +1,4 @@
+import { restoreMaps } from './assets/maps.ts'
 import { ready } from './assets/sheets.ts'
 import { display, pad, palette, settings } from './console.ts'
 import { mount } from './host.ts'
@@ -19,6 +20,8 @@ export function run(game: Game): () => void {
   ready().then(() => {
     if (stopped) return
     display.clear()
+    // A game that changed its maps starts again with them as saved.
+    restoreMaps()
     pad.releaseAll()
     const host = mount(document.body, display, palette)
     // Every device feeds the one pad, all the time.

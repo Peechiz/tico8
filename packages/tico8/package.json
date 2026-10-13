@@ -10,7 +10,7 @@
     ".": "./src/index.ts",
     "./config": "./src/config.ts",
     "./run": "./src/run.ts",
-    "./assets": "./src/assets/sheets.ts"
+    "./assets": "./src/assets/index.ts"
   },
   "dependencies": {
     "vite": "^8.3.4"
