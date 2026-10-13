@@ -60,6 +60,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/tico8
 
+  examples/07-maps:
+    dependencies:
+      tico8:
+        specifier: workspace:*
+        version: link:../../packages/tico8
+
   packages/tico8:
     dependencies:
       vite:
