@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import type { Plugin } from 'vite'
 import { assetsHmr } from './vite/assets-hmr.ts'
 import { config } from './vite/config.ts'
+import { maps } from './vite/maps.ts'
 import { sprites } from './vite/sprites.ts'
 
 /** The project file that exports `init`, `update` and `draw`. */
@@ -58,7 +59,7 @@ if (import.meta.hot) {
 
 /** Everything `tico8 dev` adds to Vite for a project folder. */
 export function tico8(): Plugin[] {
-  return [core(), config(), sprites(), assetsHmr()]
+  return [core(), config(), sprites(), maps(), assetsHmr()]
 }
 
 function core(): Plugin {

@@ -1,7 +1,9 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
-  "files": { "includes": ["**", "!pnpm-lock.yaml"] },
+  "files": {
+    "includes": ["**", "!pnpm-lock.yaml", "!**/maps/*.json", "!**/*.flags.json"]
+  },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 80 },
   "javascript": {
     "formatter": { "quoteStyle": "single", "semicolons": "asNeeded" }
