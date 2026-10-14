@@ -499,11 +499,19 @@ How the UI layer works:
   buttons have the controller and the game's actions read as not pressed.
   Anything outside a `<Menu>` is display, or mouse-only. `update` keeps
   running; the game decides whether to freeze its own logic.
+- **CSS is imported** from game code, as in any Vite project:
+  `import './ui.css'`. An edit to it shows without a restart.
+- **The main file is `main.ts` or `main.tsx`;** a game with a UI uses the
+  second.
+- **Each palette colour is a CSS variable named as in `COLOR`:**
+  `var(--darkBlue)`.
 
 ```tsx
 import { Menu } from 'tico8/ui'
 
 let hp = 3, coins = 0, paused = false
+
+import './ui.css'
 
 export function ui() {
   return (

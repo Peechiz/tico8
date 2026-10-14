@@ -1,8 +1,12 @@
+import type { UiNode } from './ui/types.ts'
+
 /** What a game's main file exports. */
 export interface Game {
   init?(): void
   update?(): void
   draw?(): void
+  /** The game's UI as JSX, read after every update. */
+  ui?(): UiNode
 }
 
 export interface LoopOptions {

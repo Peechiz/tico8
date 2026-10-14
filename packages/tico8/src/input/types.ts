@@ -171,6 +171,14 @@ export interface Pad {
   releaseAll(device?: string): void
   /** Called once before each update, so a button is stable within one. */
   sample(): void
+  /**
+   * While on, every button, action, mouse button, `dir` and stick of
+   * `input` reads as idle; the mouse position still moves. A button held
+   * when it ends is `held` but not `pressed`. A `<Menu>` mutes the game.
+   */
+  mute(on: boolean): void
+  /** The standard pad, sampled with `input` and never muted, for the UI. */
+  readonly raw: Input
 }
 
 /** `src/input/pad.ts` exports `createPad` of this type. */

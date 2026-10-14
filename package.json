@@ -13,6 +13,10 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@types/node": "^26.6.5",
+    "@types/opentype.js": "^1.3.10",
+    "happy-dom": "^21.0.1",
+    "opentype.js": "^2.0.0",
+    "tico8": "workspace:*",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.3"

@@ -5,6 +5,12 @@ import { toRgba } from './screen.ts'
 export interface Host {
   /** The element showing the screen, for the mouse to measure. */
   readonly canvas: HTMLCanvasElement
+  /**
+   * An element over the canvas as many CSS pixels wide and tall as the
+   * screen has game pixels, scaled with the canvas, for the UI layer. It
+   * ignores the pointer except on what can be pressed.
+   */
+  readonly overlay: HTMLElement
   /** Copy the screen's pixels to the canvas. */
   present(): void
   /** Remove the canvas and every listener. */
@@ -65,6 +71,8 @@ export function mount(
 
   return {
     canvas,
+    // Task 3 builds the real overlay.
+    overlay: document.createElement('div'),
     present() {
       toRgba(screen, palette, image.data)
       context.putImageData(image, 0, 0)

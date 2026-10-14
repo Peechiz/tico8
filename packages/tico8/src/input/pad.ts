@@ -179,6 +179,12 @@ export const createPad: CreatePad = (options = {}) => {
 
   return {
     input,
+    get raw(): never {
+      throw new Error('not yet')
+    },
+    mute() {
+      throw new Error('not yet')
+    },
     wants(control: Binding) {
       return (drives.get(control)?.length ?? 0) > 0
     },
