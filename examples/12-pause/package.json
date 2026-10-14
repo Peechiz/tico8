@@ -1,0 +1,11 @@
+{
+  "name": "12-pause",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tico8 dev"
+  },
+  "dependencies": {
+    "tico8": "workspace:*"
+  }
+}
