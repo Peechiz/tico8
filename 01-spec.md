@@ -132,6 +132,21 @@ and flashes.
 - If drawing falls behind, draws are skipped and updates keep their rate.
 - After a long gap, such as a background tab, the game does not
   fast-forward: at most 5 updates run in one frame and the rest are dropped.
+- **`clock`** is the engine's count of game time, read-only:
+  `clock.ticks` is how many updates have run, and `clock.seconds` is that
+  count divided by the update rate. A dropped update is not counted, so it
+  is game time, not time on the wall. Both are 0 in `init` and through the
+  first update, and go up by one update after each. A restart puts them
+  back to 0. A tick is an update, not a drawn frame and not a sprite's
+  `frame`.
+- Anything that should last a set time is timed in `seconds`, so it is the
+  same at 30 or 60 updates a second; `ticks` is for whole-update effects
+  such as a flicker every few updates.
+
+```ts
+if (clock.seconds % 1 < 0.5) prompt.draw()        // blink once a second
+hero.flash = clock.ticks % 4 < 2 ? COLOR.white : undefined
+```
 
 ## Sprites
 
@@ -165,6 +180,43 @@ hero.flipX = facingLeft
 hero.frame = 3
 
 hero.draw()                                    // draw
+```
+
+### Animation
+
+- **An animation is plain data:** `{ frames: [0, 1], fps: 8 }`, with
+  `loop: false` for one that plays once. Speed is in frames per second, so
+  it is the same at either update rate, and an animation imported from art
+  later (Aseprite tags) can take the same shape.
+- **A sprite plays one:** `hero.play(walk)`, called once each update, moves
+  it on one update and sets `hero.frame`. Nothing moves on unless the game
+  calls `play`; the engine never animates behind your back.
+- **The same animation carries on; a different one starts from its first
+  frame.** Same means the same frames, fps and loop, so an animation written
+  in place inside `update` carries on as well as a named one.
+  `hero.play(attack, { restart: true })` starts it over even when it is the
+  one already playing.
+- **A one-shot ends on its last frame,** and from the update its last frame
+  has shown its full time `hero.finished` is true. It is false for a
+  looping animation, and goes back to false when another starts.
+- Not offered yet: a helper for animating tiles and particles drawn with
+  `tiles.draw` (a game works the frame out from `clock`), and animations
+  named in the art.
+
+```ts
+const walk = { frames: [0, 1], fps: 8 }
+const stand = { frames: [0], fps: 1 }
+const attack = { frames: [2, 3, 4], fps: 12, loop: false }
+
+if (input.a.pressed) {
+  attacking = true
+  hero.play(attack, { restart: true })
+} else if (attacking) {
+  hero.play(attack)
+  if (hero.finished) attacking = false
+} else {
+  hero.play(moving ? walk : stand)
+}
 ```
 
 ## Maps
