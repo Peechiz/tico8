@@ -146,3 +146,31 @@ it('calls beforeDraw before every draw', () => {
   loop.tick(100)
   expect(order).toEqual(['begin', 'draw', 'begin', 'draw'])
 })
+
+describe('afterUpdate', () => {
+  it('runs after each update, including the first, but not after init', () => {
+    const order: string[] = []
+    const loop = createLoop(
+      { init: () => order.push('init'), update: () => order.push('update') },
+      { rate: 30, afterUpdate: () => order.push('after') },
+    )
+    loop.tick(0)
+    expect(order).toEqual(['init', 'update', 'after'])
+    order.length = 0
+    loop.tick(70)
+    expect(order).toEqual(['update', 'after', 'update', 'after'])
+  })
+
+  it('does not count updates dropped beyond the catch-up cap', () => {
+    let updates = 0
+    let after = 0
+    const loop = createLoop(
+      { update: () => void updates++ },
+      { rate: 30, afterUpdate: () => void after++ },
+    )
+    loop.tick(0)
+    loop.tick(60_000)
+    expect(after).toBe(1 + MAX_CATCH_UP)
+    expect(after).toBe(updates)
+  })
+})

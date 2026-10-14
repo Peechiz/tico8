@@ -42,6 +42,7 @@ export function createLoop(game: Game, options: LoopOptions): Loop {
       game.init?.()
       options.onUpdate?.()
       game.update?.()
+      options.afterUpdate?.()
       options.beforeDraw?.()
       game.draw?.()
       options.onDraw?.()
@@ -58,6 +59,7 @@ export function createLoop(game: Game, options: LoopOptions): Loop {
     for (let i = 0; i < run; i++) {
       options.onUpdate?.()
       game.update?.()
+      options.afterUpdate?.()
     }
     options.beforeDraw?.()
     game.draw?.()

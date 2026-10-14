@@ -24,7 +24,23 @@ export interface RunningClock {
 
 /** A clock for a game running `rate` updates a second. */
 export function createClock(rate: number): RunningClock {
-  // Contract stub: stands still until task 2 builds it.
-  const clock = { ticks: 0, seconds: 0 * rate }
-  return { clock, step() {}, reset() {} }
+  let ticks = 0
+  // Getters, so a game reading it sees the count and assigning does nothing.
+  const clock: Clock = {
+    get ticks() {
+      return ticks
+    },
+    get seconds() {
+      return ticks / rate
+    },
+  }
+  return {
+    clock,
+    step() {
+      ticks++
+    },
+    reset() {
+      ticks = 0
+    },
+  }
 }
