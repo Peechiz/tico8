@@ -11,6 +11,7 @@ function fakeNav() {
   const closed: MenuEntry[] = []
   const nav: Nav = {
     active: false,
+    backable: false,
     open(entry) {
       open.push(entry)
       return () => closed.push(entry)

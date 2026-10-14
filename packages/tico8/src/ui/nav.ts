@@ -1,4 +1,5 @@
 import type { Input } from '../input/types.ts'
+import { DIRECTION_EVENT } from './context.ts'
 import type { Box, CreateNav, Direction, MenuEntry, Pick } from './types.ts'
 
 /** What can take the highlight, unless it is disabled. */
@@ -19,6 +20,31 @@ function centre(box: Box) {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
 }
 
+/** The space between two spans on one axis, or 0 where they overlap. */
+function gap(a: number, aSize: number, b: number, bSize: number): number {
+  return Math.max(0, a - (b + bSize), b - (a + aSize))
+}
+
+/**
+ * Whether `box` lies wholly past `from`'s far edge that way, touching
+ * allowed. A box that overlaps `from` along the direction is beside it, not
+ * that way: in a column of buttons of different widths, → finds nothing.
+ */
+function beyond(from: Box, box: Box, direction: Direction): boolean {
+  // Half a pixel either way, for boxes that only touch.
+  const slack = 0.5
+  switch (direction) {
+    case 'right':
+      return box.x >= from.x + from.width - slack
+    case 'left':
+      return box.x + box.width <= from.x + slack
+    case 'down':
+      return box.y >= from.y + from.height - slack
+    case 'up':
+      return box.y + box.height <= from.y + slack
+  }
+}
+
 export const pick: Pick = (from, candidates, direction) => {
   const start = centre(from)
   const step = STEP[direction]
@@ -29,8 +55,13 @@ export const pick: Pick = (from, candidates, direction) => {
     const dx = end.x - start.x
     const dy = end.y - start.y
     const along = dx * step.x + dy * step.y
-    if (along <= 0) return
-    const across = Math.abs(dx * step.y - dy * step.x)
+    if (along <= 0 || !beyond(from, box, direction)) return
+    // How far apart the boxes are across the direction: 0 where they
+    // overlap, so a list of buttons of different widths steps in order.
+    const across =
+      step.x === 0
+        ? gap(from.x, from.width, box.x, box.width)
+        : gap(from.y, from.height, box.y, box.height)
     const score = along + 2 * across
     // Strictly less, so of two as near the first listed wins.
     if (score < bestScore) {
@@ -45,6 +76,18 @@ export const pick: Pick = (from, candidates, direction) => {
 function focusables(menu: HTMLElement): HTMLElement[] {
   return [...menu.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
     (element) => !('disabled' in element && element.disabled),
+  )
+}
+
+/** Offers `direction` to `element`; false if it was cancelled. */
+function offer(element: HTMLElement, direction: Direction): boolean {
+  const Event = element.ownerDocument.defaultView?.CustomEvent ?? CustomEvent
+  return element.dispatchEvent(
+    new Event(DIRECTION_EVENT, {
+      detail: direction,
+      cancelable: true,
+      bubbles: true,
+    }),
   )
 }
 
@@ -78,6 +121,9 @@ export const createNav: CreateNav = (
     get active() {
       return stack.length > 0
     },
+    get backable() {
+      return stack.at(-1)?.onBack !== undefined
+    },
 
     open(menu) {
       stack.push(menu)
@@ -104,6 +150,9 @@ export const createNav: CreateNav = (
         let index = focused
         for (const direction of DIRECTIONS) {
           if (!pad[direction].pressed) continue
+          // The focused element may take the direction for itself.
+          const current = elements[index]
+          if (current !== undefined && !offer(current, direction)) continue
           const next = move(elements, index, direction)
           if (next !== undefined) index = next
         }

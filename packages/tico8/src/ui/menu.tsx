@@ -20,7 +20,14 @@ export function Menu({ onBack, children, ...props }: MenuProps) {
   useLayoutEffect(() => {
     const div = element.current
     if (!div) return
-    const close = nav.open({ element: div, onBack: () => back.current?.() })
+    // `onBack` is read when it is needed, so a menu given one later has it.
+    const close = nav.open({
+      element: div,
+      get onBack() {
+        const onBack = back.current
+        return onBack && (() => onBack())
+      },
+    })
     if (!div.contains(div.ownerDocument.activeElement)) {
       div.querySelector<HTMLElement>(BUTTON)?.focus()
     }

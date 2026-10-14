@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Button, Input, StandardName } from '../input/types.ts'
+import { DIRECTION_EVENT } from './context.ts'
 import { createNav, pick } from './nav.ts'
 import type { Box } from './types.ts'
 
@@ -39,6 +40,14 @@ afterEach(() => {
 })
 
 describe('pick', () => {
+  it('steps down a left-aligned list in order, whatever its widths', () => {
+    // Resume, Quit to title, Music: on: a short one, a long one, a middling one.
+    const from = box(0, 0, 24, 6)
+    const below = [box(0, 9, 52, 6), box(0, 18, 36, 6)]
+    expect(pick(from, below, 'down')).toBe(0)
+    expect(pick(below[1]!, [from, below[0]!], 'up')).toBe(1)
+  })
+
   const from = box(0, 0)
   // Right, left, below and above the box at 0, 0.
   const around = [box(20, 0), box(-20, 0), box(0, 20), box(0, -20)]
@@ -50,17 +59,30 @@ describe('pick', () => {
     expect(pick(from, around, 'up')).toBe(3)
   })
 
-  it('counts distance across the direction double', () => {
-    // 30 along and 0 across beats 10 along and 15 across (10 + 30).
-    expect(pick(from, [box(10, 15), box(30, 0)], 'right')).toBe(1)
-    // 10 along and 5 across (10 + 10) beats 25 along and 0 across.
-    expect(pick(from, [box(10, 5), box(25, 0)], 'right')).toBe(0)
+  it('counts the gap across the direction double', () => {
+    // 30 along and no gap beats 10 along with a gap of 15 (10 + 30).
+    expect(pick(from, [box(10, 25), box(30, 0)], 'right')).toBe(1)
+    // 10 along with a gap of 5 (10 + 10) beats 25 along and no gap.
+    expect(pick(from, [box(10, 15), box(25, 0)], 'right')).toBe(0)
   })
 
-  it('goes by centres', () => {
-    // A wide box starting left of `from` but centred right of it.
-    expect(pick(from, [box(-5, 0, 40, 10)], 'right')).toBe(0)
+  it('takes only boxes wholly past the edge that way', () => {
+    // A wide box starting left of `from` but centred right of it is beside
+    // it, not to its right.
+    expect(pick(from, [box(-5, 0, 40, 10)], 'right')).toBeUndefined()
     expect(pick(from, [box(-5, 0, 40, 10)], 'left')).toBeUndefined()
+    // Touching counts.
+    expect(pick(from, [box(10, 0)], 'right')).toBe(0)
+  })
+
+  it('finds nothing beside a button in a left-aligned column', () => {
+    // Effects, with the wider Volume two rows up and the narrower Back below.
+    const effects = box(0, 18, 48, 6)
+    const column = [box(0, 0, 64, 6), box(0, 9, 40, 6), box(0, 27, 16, 6)]
+    expect(pick(effects, column, 'right')).toBeUndefined()
+    expect(pick(effects, column, 'left')).toBeUndefined()
+    expect(pick(effects, column, 'down')).toBe(2)
+    expect(pick(effects, column, 'up')).toBe(1)
   })
 
   it('takes the first of two as near', () => {
@@ -246,5 +268,47 @@ describe('createNav', () => {
     expect(focused()).toBe('inner')
     closeInner()
     expect(nav.active).toBe(false)
+  })
+
+  describe('direction event', () => {
+    const two = () =>
+      menu('<button id="one">1</button><button id="two">2</button>')
+
+    it('keeps the highlight when cancelled, and carries the direction', () => {
+      const element = two()
+      const seen: unknown[] = []
+      element.querySelector('#one')?.addEventListener(DIRECTION_EVENT, (e) => {
+        seen.push((e as CustomEvent).detail)
+        e.preventDefault()
+      })
+      const nav = createNav()
+      nav.open({ element })
+      nav.step(pad())
+      nav.step(pad('down'))
+      expect(seen).toEqual(['down'])
+      expect(focused()).toBe('one')
+    })
+
+    it('moves as before when not cancelled', () => {
+      const element = two()
+      const seen = vi.fn()
+      element.addEventListener(DIRECTION_EVENT, seen)
+      const nav = createNav()
+      nav.open({ element })
+      nav.step(pad())
+      nav.step(pad('down'))
+      expect(seen).toHaveBeenCalledOnce()
+      expect(focused()).toBe('two')
+    })
+
+    it('is not sent on the update that takes focus', () => {
+      const element = two()
+      const seen = vi.fn()
+      element.addEventListener(DIRECTION_EVENT, seen)
+      const nav = createNav()
+      nav.open({ element })
+      nav.step(pad('down'))
+      expect(seen).not.toHaveBeenCalled()
+    })
   })
 })
