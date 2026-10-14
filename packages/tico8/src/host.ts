@@ -13,7 +13,7 @@ export interface Host {
   readonly overlay: HTMLElement
   /** Copy the screen's pixels to the canvas. */
   present(): void
-  /** Remove the canvas and every listener. */
+  /** Remove the canvas, the overlay and every listener. */
   destroy(): void
 }
 
@@ -37,7 +37,21 @@ export function mount(
   canvas.width = width
   canvas.height = height
   canvas.style.imageRendering = 'pixelated'
-  canvas.style.flexShrink = '0'
+  canvas.style.display = 'block'
+
+  // The box is what gets centred and sized; the overlay sits on its top-left.
+  const box = document.createElement('div')
+  box.style.position = 'relative'
+  box.style.flexShrink = '0'
+
+  const overlay = document.createElement('div')
+  overlay.style.position = 'absolute'
+  overlay.style.left = '0'
+  overlay.style.top = '0'
+  overlay.style.width = `${width}px`
+  overlay.style.height = `${height}px`
+  overlay.style.transformOrigin = '0 0'
+  overlay.style.pointerEvents = 'none'
 
   const context = canvas.getContext('2d')
   if (!context) throw new Error('2d canvas context unavailable')
@@ -60,9 +74,13 @@ export function mount(
     )
     canvas.style.width = `${width * scale}px`
     canvas.style.height = `${height * scale}px`
+    box.style.width = `${width * scale}px`
+    box.style.height = `${height * scale}px`
+    overlay.style.transform = `scale(${scale})`
   }
 
-  parent.appendChild(canvas)
+  box.append(canvas, overlay)
+  parent.appendChild(box)
   resize()
 
   const observer = new ResizeObserver(resize)
@@ -71,8 +89,7 @@ export function mount(
 
   return {
     canvas,
-    // Task 3 builds the real overlay.
-    overlay: document.createElement('div'),
+    overlay,
     present() {
       toRgba(screen, palette, image.data)
       context.putImageData(image, 0, 0)
@@ -80,7 +97,7 @@ export function mount(
     destroy() {
       observer.disconnect()
       window.removeEventListener('resize', resize)
-      canvas.remove()
+      box.remove()
       for (const key of keys) parent.style[key] = saved[key]
     },
   }
