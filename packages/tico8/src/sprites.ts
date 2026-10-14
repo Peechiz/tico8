@@ -141,6 +141,13 @@ export interface LoadableSheet extends Sheet {
   setImage(image: IndexedImage): void
 }
 
+function sameFrames(a: readonly number[], b: readonly number[]): boolean {
+  if (a === b) return true
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
+  return true
+}
+
 /**
  * A sheet that draws to `screen`. It draws nothing until it has an image.
  * Its sprites play animations at `rate` updates a second.
@@ -225,6 +232,13 @@ export function createSheet(
       frames = columns * (next.height / cellHeight)
     },
     sprite(init) {
+      // The animation under way, how many times it has been played, and
+      // whether a one-shot has run out.
+      let playing:
+        | { frames: readonly number[]; fps: number; loops: boolean }
+        | undefined
+      let plays = 0
+      let done = false
       const sprite: Sprite = {
         x: 0,
         y: 0,
@@ -236,10 +250,42 @@ export function createSheet(
         swap: undefined,
         flash: undefined,
         ...init,
-        play(_animation: Animation, _options?: PlayOptions): void {
-          throw new Error(`not built yet at ${rate} updates a second`)
+        play(animation: Animation, options?: PlayOptions): void {
+          const { frames: cells, fps } = animation
+          const loops = animation.loop !== false
+          if (cells.length === 0) {
+            throw new Error('tico8: an animation needs at least one frame')
+          }
+          if (!(fps > 0)) {
+            throw new Error(
+              `tico8: an animation needs an fps above 0, got ${fps}`,
+            )
+          }
+          if (
+            options?.restart ||
+            !playing ||
+            playing.fps !== fps ||
+            playing.loops !== loops ||
+            !sameFrames(playing.frames, cells)
+          ) {
+            playing = { frames: cells, fps, loops }
+            plays = 0
+            done = false
+          }
+          const index = Math.floor((plays * fps) / rate)
+          plays++
+          if (loops) {
+            sprite.frame = cells[index % cells.length]!
+          } else if (index >= cells.length - 1) {
+            sprite.frame = cells[cells.length - 1]!
+            done = index >= cells.length
+          } else {
+            sprite.frame = cells[index]!
+          }
         },
-        finished: false,
+        get finished() {
+          return done
+        },
         draw(a?: number | Readonly<Vec>, b?: number): void {
           const at = a ?? sprite
           const [x, y] = typeof at === 'number' ? [at, b!] : [at.x, at.y]
