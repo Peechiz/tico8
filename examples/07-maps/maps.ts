@@ -4,9 +4,8 @@ import room1_map from './maps/room1.json'
 import { tiles } from './sprites'
 import tiles_flags from './sprites/tiles.flags.json'
 
-export const room1 = map({
-  url: '/maps/room1.json',
+export const room1 = map('room1', {
   data: room1_map,
   tiles,
-  flags: { url: '/sprites/tiles.flags.json', data: tiles_flags },
+  flags: tiles_flags,
 })
