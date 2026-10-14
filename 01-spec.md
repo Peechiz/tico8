@@ -505,6 +505,25 @@ How the UI layer works:
   second.
 - **Each palette colour is a CSS variable named as in `COLOR`:**
   `var(--darkBlue)`.
+- **The layer's own CSS is a default the game always beats:** it sits in
+  `@layer tico8`, so any game rule wins whatever its specificity. It sets
+  the font at `6px/6px tico8` (one font pixel a CSS pixel), the text in the
+  palette's lightest colour, buttons with no border, background or padding,
+  and the highlight as a 1 px outline.
+- **The highlight is the browser's focus,** so `button:focus` styles it. A
+  menu highlights its first enabled button when it opens; directions move
+  to the nearest button that way on screen, and a direction held does not
+  repeat. The pointer over a menu button highlights it.
+- **Ⓐ clicks; Ⓑ calls the top menu's `onBack`.** Menus stack: the last one
+  opened has the pad. The update that opens a menu does not act on the
+  press that opened it, and a button still held when a menu closes reads
+  `held` but not `pressed`, so the Ⓐ that chose Resume never reaches the
+  game.
+- **The layer ignores the pointer** except on what can be pressed, so the
+  game's mouse still reads the screen through a HUD. UI buttons take the
+  mouse whether or not the config turns the game's mouse on.
+- **The web font is drawn from the pixel font,** so it has the same
+  letters and symbols.
 
 ```tsx
 import { Menu } from 'tico8/ui'

@@ -17,7 +17,7 @@ Slices whose "needs" are all `done` can run in parallel.
 | 08 | [Animation and clock](08-animation.md) | 07 | small | done | The figure walking on a named animation, with no frame arithmetic in the game |
 | 09 | [Audio](09-audio.md) | 02 | small | done | A sound played on a button press |
 | 10 | [Save](10-save.md) | 02 | small | done | A high score that survives a page reload |
-| 11 | [UI layer](11-ui.md) | 04, 06 | medium | doing | A JSX HUD and a menu driven by the pad |
+| 11 | [UI layer](11-ui.md) | 04, 06 | medium | done | A JSX HUD and a menu driven by the pad |
 | 12 | [Pause menu](12-pause-menu.md) | 09, 11 | small | todo | Built-in pause with volume and a controls screen |
 | 13 | [Export](13-export.md) | 02 | medium | todo | One HTML file that plays the demo on double-click |
 | 14 | [Sprite editor](14-sprite-editor.md) | 02 | large | todo | A Sprites tab that paints into the PNG the game is showing |
