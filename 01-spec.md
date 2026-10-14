@@ -730,6 +730,14 @@ export function pause() {
   which can be picked and painted but are not added to the palette.
 - **Sheets:** a picker over the sprites folder; a new sheet is made with a
   name and a cell size, and a sheet is resized in whole cells.
+- **Saving:** each finished step writes the PNG. The editor's own writes
+  coming back are ignored; any other change to the file, a revert included,
+  is taken in as one undoable step. A stroke in progress wins.
+- **Selections** float over the sheet until dropped, and are saved as if
+  dropped. Moving, flipping and rotating one is a single undo step with the
+  lift; its see-through pixels leave what is under them.
+- **Focus:** the game's menus take focus only while its page has it, so the
+  game never pulls keys away from an editor beside it.
 
 ## Export and sharing
 

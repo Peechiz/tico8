@@ -69,35 +69,35 @@ packages/tico8/src/vite.ts                + shell page at /, game page at /@tico
   exported signatures, each throwing "not yet", and the components their
   props types. Owns: `editor/types.ts`, the declarations in every file
   below. Waits on: none.
-- [ ] **2. PNG encoder.** `encodePng({ width, height, data })` gives the
+- [x] **2. PNG encoder.** `encodePng({ width, height, data })` gives the
   bytes of an 8-bit RGBA PNG, one IDAT, no filters needed beyond 0, CRCs
   right. Tested by decoding its output (hand-written inflate check via
   `DecompressionStream`, or the dimensions and pixels read back through a
   small parser in the test) for a 3x2 image with a transparent pixel.
   Owns: `editor/png.ts`, `editor/png.test.ts`. Waits on: 1.
-- [ ] **3. Sheet document.** `openSheet({ info, pixels, palette })` gives
+- [x] **3. Sheet document.** `openSheet({ info, pixels, palette })` gives
   an indexed image and its colours (palette, then off-palette ones);
   `toRgba` turns it back, exact for every colour and transparent pixels
   0,0,0,0. `createHistory` holds snapshots for undo and redo, capped at 100
-  steps; a new step clears redo. `resizeSheet` changes the size in whole
-  cells, keeping the top left. `blankSheet({ cellWidth, cellHeight, cells })`
+  steps; a new step clears redo. `resizeImage` changes the size in whole
+  cells, keeping the top left. `blankImage({ width, height })`
   is all transparent. Tested with off-palette colours round-tripping, half
   transparent pixels, undo past the cap, resize both ways.
   Owns: `editor/image.ts`, `editor/image.test.ts`. Waits on: 1.
-- [ ] **4. Drawing tools.** On an indexed image, clipped to a rect (the
+- [x] **4. Drawing tools.** On an indexed image, clipped to a rect (the
   zoomed cells or the selection): pencil and eraser as a stroke from point
   to point (Bresenham, so a fast drag leaves no gaps), fill (four-way, same
   index), line, rect outlined and filled, pick (the index under a point).
   Tested with text pictures for each tool and for clipping.
   Owns: `editor/tools.ts`, `editor/tools.test.ts`. Waits on: 1.
-- [ ] **5. Selection.** Select a rect; lift it (the hole becomes
+- [x] **5. Selection.** Select a rect; lift it (the hole becomes
   transparent) and move it; drop it; copy to a `Clip` and paste as a lifted
   selection at a point; flip horizontally and vertically and rotate a
   quarter turn clockwise, the selection or, with none, the zoomed cells.
   Rotating a selection that is not square is refused. Tested with text
   pictures.
   Owns: `editor/selection.ts`, `editor/selection.test.ts`. Waits on: 1.
-- [ ] **6. Files.** The dev server side, a plugin in `vite/files.ts`:
+- [x] **6. Files.** The dev server side, a plugin in `vite/files.ts`:
   `GET /@tico8/sheets` lists the sprites folder as `SheetInfo[]` (through
   `scanSprites`); `PUT /@tico8/sheets/<file>` writes the body there, only
   for a name `parseSheetFile` accepts, no folders, `..` or hidden files,
@@ -109,7 +109,7 @@ packages/tico8/src/vite.ts                + shell page at /, game page at /@tico
   middleware: listing, writing, refusing bad names, the list event.
   Owns: `vite/files.ts`, `vite/files.test.ts`, `editor/host.ts`,
   `assets/event.ts` (+ `SHEETS_LISTED`). Waits on: 1.
-- [ ] **7. Editor state.** `createEditor({ host, palette })`: the open
+- [x] **7. Editor state.** `createEditor({ host, palette })`: the open
   sheet, the zoomed cell and how many cells wide the zoom is (1, 2 or 4),
   tool, colour, selection, clip, history; actions for each tool's pointer
   down, move and up, keyboard shortcuts, new sheet, resize, open. Writes the
@@ -119,7 +119,7 @@ packages/tico8/src/vite.ts                + shell page at /, game page at /@tico
   writes once, undo writes the old pixels, an outside change is undoable,
   the echo is ignored. Owns: `editor/state.ts`, `editor/state.test.ts`.
   Waits on: 1 (runs against 3–5's stubs until they land; finish after them).
-- [ ] **8. Canvas and sheet view.** `Canvas` draws the zoomed cells big
+- [x] **8. Canvas and sheet view.** `Canvas` draws the zoomed cells big
   with a pixel grid and cell lines, the selection's marching outline and a
   line or rect while dragged, and turns pointer events into the state's
   tool actions in image pixels. `SheetView` draws the whole sheet small with
@@ -128,7 +128,7 @@ packages/tico8/src/vite.ts                + shell page at /, game page at /@tico
   screen point reaches the right pixel; a click picks the right cell.
   Owns: `editor/canvas.tsx`, `editor/sheet-view.tsx`, their tests.
   Waits on: 1.
-- [ ] **9. Panels.** `Toolbar` (a button per tool with its shortcut,
+- [x] **9. Panels.** `Toolbar` (a button per tool with its shortcut,
   undo, redo, flip, rotate, zoom 1/2/4), `PalettePanel` (palette swatches,
   then the sheet's off-palette colours after a gap; the chosen one marked),
   `SheetPicker` (the sheets by name with cell size; New: name and cell
@@ -136,16 +136,16 @@ packages/tico8/src/vite.ts                + shell page at /, game page at /@tico
   in cells). Tested in happy-dom: a click calls the right action, a bad
   name shows the reason. Owns: `editor/panels.tsx`,
   `editor/panels.test.tsx`. Waits on: 1.
-- [ ] **10. Shell.** `Shell` shows Game and Sprites tabs and a split
+- [x] **10. Shell.** `Shell` shows Game and Sprites tabs and a split
   toggle; the game is an `<iframe src="/@tico8/game">` kept alive across tab
   switches (hidden, not removed); switching to Game focuses it. The tab and
   split are remembered in `localStorage` (wrapped, it may throw). Tested in
   happy-dom. Owns: `editor/shell.tsx`, `editor/shell.test.tsx`.
   Waits on: 1.
-- [ ] **11. Demo.** `examples/14-sprites` copied from `examples/13-export`,
+- [x] **11. Demo.** `examples/14-sprites` copied from `examples/13-export`,
   package renamed, plus `sprites/badge.16.png` (a simple 16x16 badge) drawn
   in the HUD's top right. Owns: `examples/14-sprites/`. Waits on: 1.
-- [ ] **12. Wire up.** Lead only. `sprite-editor.tsx` composing the
+- [x] **12. Wire up.** Lead only. `sprite-editor.tsx` composing the
   panels, canvas and sheet view over the state; `main.tsx` mounting the
   shell; `vite.ts` serving the shell page at `/` and the game page at
   `/@tico8/game`, adding `files()`. Run the demo in the browser.
@@ -168,4 +168,43 @@ packages/tico8/src/vite.ts                + shell page at /, game page at /@tico
 
 ## Decisions made
 
-None yet.
+- **VSCode hosting dropped.** The editors live in the browser only; the
+  `FileHost` stays because it keeps the editor testable.
+- **Shell:** `/` is the shell page, the game is `/@tico8/game` in an iframe
+  kept alive across tabs; split puts the game at 40% on the left. Tab and
+  split are kept in `localStorage` as `tico8:shell`. Showing Game focuses
+  the frame; showing an editor takes focus back from it.
+- **The game takes focus only when its page has it.** The UI nav and
+  `Menu` focused their first button every update, which from inside the
+  frame pulled the keys away from the editor. They now do it only when
+  `document.hasFocus()`; the nav takes focus once the game is clicked or
+  shown.
+- **Files:** `GET /@tico8/sheets` lists, `PUT /@tico8/sheets/<file>` writes
+  through a hidden temp file and a rename; a refused name is a 400 whose body
+  is the reason, shown in the panel. `tico8:sheets-listed` is sent only when
+  the list changes. The page spells sheet addresses itself, as
+  `renderSprites` does.
+- **Saving and echoes:** each finished step is written once; a sheet the file
+  already holds is not written again. A change whose pixels are what the
+  editor shows, or one of its own recent writes, is ignored, and that write
+  and older ones are forgotten; anything else, even content the file held
+  before (a revert), is taken in as one undoable step. A change during a
+  stroke is ignored; the stroke's write wins. Two editors open on one sheet
+  pass each other's writes around as outside changes.
+- **Tools:** everything clips to the image and the painting area; fill is
+  four-way and does nothing on the same colour; pick stays on pick; a
+  selection is not limited to the painting area; choosing another tool drops
+  it. A lifted selection's moves, flips and rotates are one step with the
+  lift, and the file shows it as dropped while it floats. Lifted see-through
+  pixels leave what is under them. Rotate refuses a non-square region. Cut is
+  copy then clear; paste lands at the painting area's top left.
+- **Opening:** the first sheet opens on start; opening another drops any
+  floating selection and starts a fresh history; the starting colour is 7.
+- **View:** the painting area fits its space by whole scales (at least 2);
+  the sheet view is 1x to 4x; clicking it picks the top-left cell, clamped
+  so the zoom stays in the sheet. Shortcut labels show `Ctrl` for `mod`.
+- **Demo:** `badge.16.png`, a star in Pico-8 yellow and orange, drawn at the
+  HUD's top right below the score line.
+- Seen in Chrome: every tool on `badge`, each stroke live in the game with
+  the split on, New and Resize writing files, a refused name's reason, a PNG
+  replaced from outside showing up, letter keys staying in the editor.
