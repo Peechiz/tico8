@@ -9,11 +9,10 @@ Vitest test that checks the pixel buffer.
 
 ## Examples
 
-A slice usually adds its own game, `examples/<number>-<name>`
-(`examples/03-drawing`), and that is what a slice file means by "the demo".
-The user may instead choose to grow an earlier example with the new
-feature. Earlier examples are kept as working samples: when an API change
-breaks one, port it. `pnpm dev` runs the newest; `pnpm dev 02-sprite`
+Each slice adds its own game, `examples/<number>-<name>` (`examples/03-drawing`),
+and that is what a slice file means by "the demo". Earlier examples are kept
+as working samples: never rewrite one for a new feature, and when an API
+change breaks one, port it. `pnpm dev` runs the newest; `pnpm dev 02-sprite`
 runs one by name.
 
 ## Working a slice
