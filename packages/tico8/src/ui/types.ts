@@ -1,5 +1,5 @@
 import type { ComponentChildren, HTMLAttributes } from 'preact'
-import type { Input } from '../input/types.ts'
+import type { Bindings, Input } from '../input/types.ts'
 import type { Rgb } from '../palette.ts'
 
 /** What a game's `ui` returns: JSX, text, a list of them, or nothing. */
@@ -41,6 +41,8 @@ export interface MenuEntry {
 export interface Nav {
   /** Whether any menu is open; then the game's input reads as idle. */
   readonly active: boolean
+  /** Whether the menu on top has an `onBack` for Ⓑ to call. */
+  readonly backable: boolean
   /**
    * A menu came on screen: it goes on top of any open before it. Returns a
    * function for when it leaves.
@@ -103,6 +105,40 @@ export type BaseStyle = (
   colors: Readonly<Record<string, number>>,
   palette: readonly Rgb[],
 ) => string
+
+/** One row of the controls screen: `{ label: 'jump', bindings: ['Ⓐ', 'Space'] }`. */
+export interface ControlRow {
+  readonly label: string
+  /** What triggers it, each as the player reads it. */
+  readonly bindings: readonly string[]
+}
+
+/**
+ * `src/ui/controls.ts` exports `controlRows` of this type: the controls
+ * screen's rows from the game's actions.
+ */
+export type ControlRows = (actions: Bindings) => ControlRow[]
+
+/** What the pause menu works with. `run` makes it. */
+export interface PauseControls {
+  /** Close the menu and carry on the game. */
+  resume(): void
+  /** The master volume, from 0 to 1. Setting it changes the sound and keeps it. */
+  volume: number
+  /** Whether sound is heard. Setting it keeps it. */
+  sound: boolean
+  /** Whether the player has pressed something, so sound can play. */
+  readonly unlocked: boolean
+  /** The controls screen's rows. */
+  readonly controls: readonly ControlRow[]
+}
+
+/** What `PauseScreen` takes. */
+export interface PauseScreenProps {
+  controls: PauseControls
+  /** What the game's `pause` returned: its own items. */
+  items?: UiNode
+}
 
 /**
  * `src/ui/font.ts` exports `addFont` of this type: adds the console's font

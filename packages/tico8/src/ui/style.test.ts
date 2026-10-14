@@ -32,6 +32,23 @@ describe('baseStyle', () => {
     expect(css).toContain('outline: 1px solid currentColor;')
   })
 
+  it('styles the pause menu inside the layer', () => {
+    const inLayer = css.slice(css.indexOf('@layer tico8 {'))
+    expect(css.indexOf('@layer')).toBe(css.lastIndexOf('@layer'))
+    for (const rule of [
+      '[data-tico8-ui] .tico8-pause {',
+      '[data-tico8-ui] :is(.tico8-pause-menu, .tico8-options, .tico8-controls) {',
+      '[data-tico8-ui] .tico8-pause-items {',
+      '[data-tico8-ui] .tico8-control {',
+    ]) {
+      expect(inLayer).toContain(rule)
+    }
+    expect(css).toContain('inset: 0;')
+    expect(css).toContain('rgb(0 0 0 / 50%)')
+    // darkest PICO8 colour is black, mid-brightness border is a 1 px line
+    expect(css).toMatch(/background: #000000;\n\s+border: 1px solid #/)
+  })
+
   it('works with a custom palette', () => {
     const custom = baseStyle({ ink: 0, sky: 1, paper: 2 }, [
       [0, 0, 0],
