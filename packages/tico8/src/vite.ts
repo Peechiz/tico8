@@ -8,8 +8,13 @@ import { project } from './vite/project.ts'
 import { sounds } from './vite/sounds.ts'
 import { sprites } from './vite/sprites.ts'
 
-/** The project file that exports `init`, `update` and `draw`. */
-const mainFile = 'main.ts'
+/** The project files that can export `init`, `update` and `draw`, best first. */
+const mainFiles = ['main.tsx', 'main.ts']
+
+/** The main file in this folder, or undefined when there is none. */
+function findMain(root: string): string | undefined {
+  return mainFiles.find((file) => existsSync(join(root, file)))
+}
 
 /**
  * The module the page loads. It has no file; `load` below writes it. Its id
@@ -48,7 +53,8 @@ const page = `<!doctype html>
  * main file or anything it imports re-runs this module, which stops the
  * old game first.
  */
-const entry = `import * as game from '/${mainFile}'
+function entry(main: string): string {
+  return `import * as game from '/${main}'
 import { run } from 'tico8/run'
 
 const stop = run(game)
@@ -58,6 +64,7 @@ if (import.meta.hot) {
   import.meta.hot.dispose(stop)
 }
 `
+}
 
 /** Everything `tico8 dev` adds to Vite for a project folder. */
 export function tico8(): Plugin[] {
@@ -65,23 +72,39 @@ export function tico8(): Plugin[] {
 }
 
 function core(): Plugin {
+  let main = 'main.ts'
   return {
     name: 'tico8',
 
     config() {
       // The engine is TypeScript source shared with the game, so it must be
-      // served as modules rather than bundled ahead of time.
-      return { optimizeDeps: { exclude: ['tico8'] } }
+      // served as modules rather than bundled ahead of time. Preact, which
+      // it imports, is bundled once for the engine and the game alike.
+      return {
+        optimizeDeps: {
+          exclude: ['tico8'],
+          include: [
+            'tico8 > preact',
+            'tico8 > preact/hooks',
+            'tico8 > preact/jsx-runtime',
+            'tico8 > preact/jsx-dev-runtime',
+          ],
+        },
+        // JSX goes through tico8/ui whatever the project's tsconfig says.
+        oxc: { jsx: { runtime: 'automatic', importSource: 'tico8/ui' } },
+      }
     },
 
     configResolved(config) {
-      const main = join(config.root, mainFile)
-      if (!existsSync(main)) {
+      const found = findMain(config.root)
+      if (found === undefined) {
         throw new Error(
-          `No ${mainFile} in ${config.root}. Run tico8 in a project folder: ` +
-            `it needs a ${mainFile} that exports init, update and draw.`,
+          `No ${mainFiles.join(' or ')} in ${config.root}. Run tico8 in a ` +
+            `project folder: it needs a ${mainFiles.join(' or ')} that ` +
+            `exports init, update and draw.`,
         )
       }
+      main = found
     },
 
     resolveId(id) {
@@ -89,7 +112,7 @@ function core(): Plugin {
     },
 
     load(id) {
-      if (id === entryId) return entry
+      if (id === entryId) return entry(main)
     },
 
     configureServer(server) {
