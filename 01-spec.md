@@ -444,7 +444,7 @@ hero.draw(player.pos)              // draw
   so 32 characters fit across the standard screen.
   - **Characters:** ASCII, the Western European accented letters the font
     comes with, and game symbols typed straight into a string:
-    `♥ ● ★ ♪ ← ↑ → ↓` and the pad buttons `Ⓐ Ⓑ Ⓧ Ⓨ`.
+    `♥ ● ★ ✧ ♪ ← ↑ → ↓` and the pad buttons `Ⓐ Ⓑ Ⓧ Ⓨ`.
   - **A one-off:** `text(string, { x, y, color, align })` draws it now.
     `text.measure(string)` gives its width and height.
   - **A value:** `label({ x, y, text, color, align })` holds its place and
@@ -512,9 +512,12 @@ How the UI layer works:
   and the highlight as a 1 px outline.
 - **The highlight is the browser's focus,** so `button:focus` styles it. A
   menu highlights its first enabled button when it opens; directions move
-  to the nearest button that way on screen, and a direction held does not
-  repeat. The pointer over a menu button highlights it.
-- **Ⓐ clicks; Ⓑ calls the top menu's `onBack`.** Menus stack: the last one
+  to the nearest button that way on screen, one wholly past the highlighted
+  one's edge, so ← and → do nothing in a single column. A direction held
+  does not repeat. The pointer over a menu button highlights it.
+- **Ⓐ clicks; Ⓑ calls the top menu's `onBack`.** On the keyboard Enter
+  clicks and Escape goes back too, in any menu and whatever the game bound
+  them to; in play Enter is free for the game. Menus stack: the last one
   opened has the pad. The update that opens a menu does not act on the
   press that opened it, and a button still held when a menu closes reads
   `held` but not `pressed`, so the Ⓐ that chose Resume never reaches the
@@ -572,6 +575,9 @@ export function ui() {
 - **Before the player's first key press, click or tap,** browsers play no
   sound. Effects played before then are dropped; a loop played before then
   starts on that press, so title music needs no extra code.
+  A controller does not count: browsers read it by polling, not as a
+  press they trust. Nor does Escape; sound waits for a press that does. `audio.unlocked`, read-only from `tico8`, says whether
+  sound is let through yet, so a game can show "press any key for sound".
 - **Saving code restarts the game, not the music.** On that restart every
   effect stops, and a loop the new game plays again from `init` or its
   first update carries on where it was. A loop it no longer plays falls
@@ -641,9 +647,64 @@ text(`Best ${save.best}`, { x: 2, y: 2 })
 
 ## Pause menu
 
-- Built in: resume, restart, volume, and a controls screen generated from the
-  game's actions and bindings.
-- Games can add items, restyle it or replace it.
+Pico-8's: one built-in menu, the same in every game, that a game can add
+to. A pause screen of the game's own, such as an inventory, is a `<Menu>`
+in its `ui`.
+
+- **Built in:** Resume, the game's items, Options (volume and sound on or
+  off) and Controls (the pad and the game's actions). No Restart:
+  a whole-game reset is the browser's reload, and what games want
+  ("Restart level", "Quit to title") is theirs to add.
+- **Start on a controller or Escape on the keyboard opens it,** one key
+  each. Start closes it again from anywhere. In the menu Escape is Ⓑ:
+  it backs out of Options or Controls, and from the menu itself resumes.
+  Over a game's own `<Menu>` that has an `onBack`, Escape is that menu's Ⓑ;
+  over one without, such as a title menu, it pauses.
+  An action that names `start` or `Escape` keeps it for the game, which
+  then pauses by the other only.
+- **The game freezes, the same in every game:** `update` and `draw` are
+  not called and `clock` does not count. The last frame stays on screen,
+  dimmed by a CSS backdrop in `@layer tico8` that a game can restyle.
+  Timers outside the engine (`setTimeout`, `Date.now`) do not stop; time
+  things with `clock`.
+- **Sound:** loops keep playing, so the volume can be heard as it moves;
+  one-off effects hold where they are and carry on at resume. One played
+  while the menu is open, such as an item's click, sounds as usual.
+- **Options** replaces the menu with Volume, Sound and Back. Volume shows
+  as 0 to 10: ← and → step it, Ⓐ or a click steps it up and wraps from 10
+  to 0. Sound switches every sound on and off, music and effects alike;
+  ←, →, Ⓐ or a click flips it. Switched off, sounds play on silent:
+  `playing` does not change and music switched back on carries on where
+  it is. Until the first key press it says "Press a key for sound". Both
+  are remembered per game in the browser, apart from the save, so
+  `save.clear()` leaves them. Ⓑ or Back goes back.
+- **Controls** replaces the menu with a list: the directions and Ⓐ Ⓑ Ⓧ Ⓨ
+  with the keys still theirs (a row stays with no keys, since a controller
+  still presses it), then each action with its bindings. Pausing is not
+  listed: whoever is reading it found the way in. Ⓑ or Back goes back.
+- **A game adds items** by exporting `pause` beside `ui`, returning
+  buttons. They show between Resume and Options. Choosing one runs its
+  `onClick` and closes the menu, unless the click calls
+  `event.preventDefault()`, as a toggle that shows its state would.
+- **Restyled with CSS:** the menu's elements have `tico8-` classes, and its
+  default CSS is in `@layer tico8` like the rest of the layer's:
+  `.tico8-pause` the backdrop, `.tico8-pause-menu`, `.tico8-options` and
+  `.tico8-controls` the panels, each with an `h2`, `.tico8-pause-items`
+  around a game's items, `.tico8-pause-options`, `.tico8-pause-controls`,
+  `.tico8-pause-volume`, `.tico8-pause-sound`,
+  `.tico8-pause-unlock`, and `.tico8-control`
+  rows of `.tico8-control-label` and `.tico8-control-bindings`.
+
+```tsx
+export function pause() {
+  return (
+    <>
+      <button onClick={restartLevel}>Restart level</button>
+      <button onClick={toTitle}>Quit to title</button>
+    </>
+  )
+}
+```
 
 ## Editors
 
