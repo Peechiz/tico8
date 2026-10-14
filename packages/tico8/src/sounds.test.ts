@@ -18,6 +18,8 @@ function fakeOut() {
         stop() {
           voice.stopped = true
         },
+        pause() {},
+        resume() {},
       }
     },
     resume() {},

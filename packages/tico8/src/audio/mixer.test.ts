@@ -8,6 +8,7 @@ interface FakeVoice {
   gain: number
   stopped: boolean
   ended: boolean
+  paused: boolean
   end(): void
 }
 
@@ -23,6 +24,7 @@ function fakeOut() {
         gain: options.gain,
         stopped: false,
         ended: false,
+        paused: false,
         end() {
           voice.ended = true
           options.onEnded()
@@ -35,6 +37,12 @@ function fakeOut() {
         },
         stop() {
           voice.stopped = true
+        },
+        pause() {
+          voice.paused = true
+        },
+        resume() {
+          voice.paused = false
         },
       }
     },
@@ -268,5 +276,126 @@ describe('restart', () => {
     sound.play({ loop: true })
     mixer.settle()
     expect(fake.alive()).toHaveLength(1)
+  })
+})
+
+describe('hold', () => {
+  it('pauses one-off copies, and release carries them on', () => {
+    const { fake, mixer, sound } = setup()
+    sound.play()
+    sound.play()
+    mixer.hold()
+    expect(fake.at(0).paused).toBe(true)
+    expect(fake.at(1).paused).toBe(true)
+    expect(fake.alive()).toHaveLength(2)
+    expect(sound.playing).toBe(true)
+    mixer.release()
+    expect(fake.at(0).paused).toBe(false)
+    expect(fake.at(1).paused).toBe(false)
+    fake.at(0).end()
+    fake.at(1).end()
+    expect(sound.playing).toBe(false)
+  })
+
+  it('lets loops play through', () => {
+    const { fake, mixer, sound } = setup()
+    sound.play({ loop: true })
+    sound.play()
+    mixer.hold()
+    expect(fake.at(0).paused).toBe(false)
+    expect(fake.at(1).paused).toBe(true)
+  })
+
+  it('reaches every sound', () => {
+    const { fake, mixer, sound } = setup()
+    const other = mixer.sound()
+    other.setClip(clip)
+    sound.play()
+    other.play()
+    mixer.hold()
+    expect(fake.voices.every((v) => v.paused)).toBe(true)
+  })
+
+  it('stops held copies on stop()', () => {
+    const { fake, mixer, sound } = setup()
+    sound.play()
+    mixer.hold()
+    sound.stop()
+    expect(fake.at(0).stopped).toBe(true)
+    expect(sound.playing).toBe(false)
+    mixer.release()
+    expect(fake.alive()).toHaveLength(0)
+  })
+
+  it('stops held copies on restarting()', () => {
+    const { fake, mixer, sound } = setup()
+    sound.play()
+    mixer.hold()
+    mixer.restarting()
+    expect(fake.at(0).stopped).toBe(true)
+    expect(sound.playing).toBe(false)
+  })
+
+  it('lets volume changes reach held copies', () => {
+    const { fake, mixer, sound } = setup()
+    sound.play({ volume: 0.5 })
+    sound.play({ loop: true })
+    mixer.hold()
+    mixer.volume = 0.5
+    expect(fake.at(0).gain).toBeCloseTo(0.25)
+    expect(fake.at(1).gain).toBeCloseTo(0.5)
+    sound.volume = 0.5
+    expect(fake.at(0).gain).toBeCloseTo(0.125)
+    mixer.release()
+    expect(fake.at(0).gain).toBeCloseTo(0.125)
+  })
+
+  it('lets a one-off played during it sound', () => {
+    const { fake, mixer, sound } = setup()
+    mixer.hold()
+    sound.play()
+    expect(fake.at(0).paused).toBe(false)
+    mixer.release()
+    expect(fake.at(0).paused).toBe(false)
+  })
+
+  it('twice, or a release without one, is harmless', () => {
+    const { fake, mixer, sound } = setup()
+    sound.play()
+    mixer.release()
+    expect(fake.at(0).paused).toBe(false)
+    mixer.hold()
+    mixer.hold()
+    expect(fake.at(0).paused).toBe(true)
+    mixer.release()
+    expect(fake.at(0).paused).toBe(false)
+    mixer.release()
+    expect(fake.alive()).toHaveLength(1)
+  })
+})
+
+describe('sound switch', () => {
+  it('silences every sound when off, and each carries on when it is back', () => {
+    const { fake, mixer, sound } = setup()
+    sound.play({ loop: true })
+    sound.play()
+    mixer.soundOn = false
+    expect(fake.at(0).gain).toBe(0)
+    expect(fake.at(1).gain).toBe(0)
+    // Still going, so the game sees it playing.
+    expect(sound.playing).toBe(true)
+    expect(fake.at(0).stopped).toBe(false)
+    mixer.soundOn = true
+    expect(fake.at(0).gain).toBe(1)
+    expect(fake.at(1).gain).toBe(1)
+  })
+
+  it('starts new plays silent while off, loops and one-offs alike', () => {
+    const { fake, mixer, sound } = setup()
+    mixer.soundOn = false
+    sound.play({ loop: true })
+    sound.play()
+    expect(fake.at(0).gain).toBe(0)
+    expect(fake.at(1).gain).toBe(0)
   })
 })

@@ -29,7 +29,10 @@ interface Loop {
 /** A console's sounds, played through `out`. Locked until `unlock`. */
 export function createMixer(out: AudioOut): Mixer {
   let master = 1
+  // The pause menu's Sound switch.
+  let soundOn = true
   let unlocked = false
+  let held = false
   const sounds = new Set<SoundState>()
 
   interface SoundState {
@@ -40,6 +43,10 @@ export function createMixer(out: AudioOut): Mixer {
     unlock(): void
     restarting(): void
     settle(): void
+    /** Pause every one-off copy. */
+    hold(): void
+    /** Resume every one-off copy. */
+    release(): void
   }
 
   const mixer: Mixer = {
@@ -49,7 +56,9 @@ export function createMixer(out: AudioOut): Mixer {
       const copies = new Set<Copy>()
       let loop: Loop | null = null
 
-      const gainOf = (playVolume: number) => master * volume * playVolume
+      // Switched off, sound plays on silent, so it carries on where it is.
+      const gainOf = (playVolume: number) =>
+        soundOn ? master * volume * playVolume : 0
 
       // A loop with a clip, once unlocked, gets its voice; until then it waits.
       function startLoop(): void {
@@ -141,6 +150,12 @@ export function createMixer(out: AudioOut): Mixer {
         settle() {
           if (loop !== null && !loop.claimed) stopLoop()
         },
+        hold() {
+          for (const copy of copies) copy.voice.pause()
+        },
+        release() {
+          for (const copy of copies) copy.voice.resume()
+        },
       }
       sounds.add(state)
       return state.sound
@@ -150,6 +165,13 @@ export function createMixer(out: AudioOut): Mixer {
     },
     set volume(next: number) {
       master = clamp(next)
+      for (const state of sounds) state.regain()
+    },
+    get soundOn() {
+      return soundOn
+    },
+    set soundOn(on: boolean) {
+      soundOn = on
       for (const state of sounds) state.regain()
     },
     get unlocked() {
@@ -166,6 +188,16 @@ export function createMixer(out: AudioOut): Mixer {
     },
     settle() {
       for (const state of sounds) state.settle()
+    },
+    hold() {
+      if (held) return
+      held = true
+      for (const state of sounds) state.hold()
+    },
+    release() {
+      if (!held) return
+      held = false
+      for (const state of sounds) state.release()
     },
   }
   return mixer

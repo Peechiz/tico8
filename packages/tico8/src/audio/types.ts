@@ -40,6 +40,10 @@ export interface Voice {
   setGain(gain: number): void
   /** Stop it. It does not call `onEnded` after this. */
   stop(): void
+  /** Hold it where it is in its clip. Does nothing when already held. */
+  pause(): void
+  /** Carry on from where `pause` held it. Does nothing when not held. */
+  resume(): void
 }
 
 /**
@@ -76,6 +80,11 @@ export interface Mixer {
   sound(): LoadableSound
   /** Loudness over every sound, from 0 to 1, for the pause menu. */
   volume: number
+  /**
+   * Whether sound is heard, for the pause menu. Switched off, every sound
+   * plays on silent, so it carries on where it is when switched back.
+   */
+  soundOn: boolean
   /** Whether the player has pressed something yet. */
   readonly unlocked: boolean
   /** The player has pressed something: let sound through, start waiting loops. */
@@ -87,4 +96,27 @@ export interface Mixer {
   restarting(): void
   /** The new game has started: stop the loops it did not play again. */
   settle(): void
+  /**
+   * The game is paused: hold every one-off copy where it is. Loops play
+   * on, so the volume can be heard as it changes.
+   */
+  hold(): void
+  /** The game carries on: every held copy carries on from where it was. */
+  release(): void
+}
+
+/** The pause menu's sound settings. */
+export interface SoundSettings {
+  /** The master volume, from 0 to 1. */
+  volume: number
+  /** Whether sound is heard at all. */
+  sound: boolean
+}
+
+/** The sound settings, kept from one visit to the next. */
+export interface RememberedSound {
+  /** What is stored, each setting that is missing or bad as its default. */
+  load(): SoundSettings
+  /** Keep the settings for next time. */
+  store(settings: SoundSettings): void
 }

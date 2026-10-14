@@ -14,26 +14,69 @@ export function createWebAudio(): AudioOut {
       return { duration: buffer.duration, buffer } as WebClip
     },
     start(clip, { loop, gain, onEnded }) {
-      const source = context.createBufferSource()
-      source.buffer = (clip as WebClip).buffer
-      source.loop = loop
+      const { buffer } = clip as WebClip
+      // One gain node for the whole voice, so `setGain` reaches every source.
       const node = context.createGain()
       node.gain.value = gain
-      source.connect(node).connect(context.destination)
+      node.connect(context.destination)
+
+      // A source node plays once and cannot be paused, so each stretch of
+      // playing gets its own, started at `offset` seconds into the clip.
+      let source: AudioBufferSourceNode | null = null
+      let offset = 0
+      let startedAt = 0
       let stopped = false
-      source.onended = () => {
-        if (!stopped) onEnded()
+
+      function play(): void {
+        const next = context.createBufferSource()
+        next.buffer = buffer
+        next.loop = loop
+        next.connect(node)
+        // Only the source now playing may end the voice: one stopped by
+        // `pause` or `stop` stays quiet.
+        next.onended = () => {
+          if (source === next) {
+            source = null
+            stopped = true
+            node.disconnect()
+            onEnded()
+          }
+        }
+        startedAt = context.currentTime
+        next.start(0, offset)
+        source = next
       }
-      source.start()
+
+      function halt(): void {
+        if (source === null) return
+        const old = source
+        source = null
+        old.stop()
+        old.disconnect()
+      }
+
+      play()
       return {
         setGain(value) {
           node.gain.value = value
         },
         stop() {
+          if (stopped) return
           stopped = true
-          source.stop()
-          source.disconnect()
+          halt()
           node.disconnect()
+        },
+        pause() {
+          if (stopped || source === null) return
+          const played = offset + (context.currentTime - startedAt)
+          offset = loop
+            ? played % buffer.duration
+            : Math.min(played, buffer.duration)
+          halt()
+        },
+        resume() {
+          if (stopped || source !== null) return
+          play()
         },
       }
     },
