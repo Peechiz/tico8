@@ -189,7 +189,6 @@ describe('createPad buttons and actions', () => {
       KeyS: 'b',
       KeyW: 'x',
       KeyD: 'y',
-      Enter: 'start',
       ShiftLeft: 'select',
       ShiftRight: 'select',
     } as const
@@ -579,5 +578,69 @@ describe('createPad mute', () => {
     pad.set('keyboard', 'a', true)
     pad.sample()
     expect(state(pad.input.a)).toEqual([true, true, false])
+  })
+})
+
+describe('createPad pause', () => {
+  it.each(['start', 'Escape'])('is pressed by %s', (control) => {
+    const pad = createPad()
+    pad.set('keyboard', control as 'start', true)
+    pad.sample()
+    expect(state(pad.pause)).toEqual([true, true, false])
+    pad.set('keyboard', control as 'start', false)
+    pad.sample()
+    expect(state(pad.pause)).toEqual([false, false, true])
+  })
+
+  it('is not pressed by Enter, which stands for nothing in play', () => {
+    const pad = createPad()
+    pad.set('keyboard', 'Enter', true)
+    pad.sample()
+    expect(state(pad.pause)).toEqual([false, false, false])
+    expect(state(pad.input.start)).toEqual([false, false, false])
+  })
+
+  it('is not muted', () => {
+    const pad = createPad()
+    pad.mute(true)
+    pad.set('keyboard', 'Escape', true)
+    pad.sample()
+    expect(state(pad.pause)).toEqual([true, true, false])
+  })
+
+  it('is not driven by a key an action names', () => {
+    const pad = createPad({ actions: { back: ['Escape'] } })
+    pad.set('keyboard', 'Escape', true)
+    pad.sample()
+    expect(state(pad.pause)).toEqual([false, false, false])
+    expect(state(action(pad, 'back'))).toEqual([true, true, false])
+  })
+
+  it('leaves Start to an action that names it, and keeps Escape', () => {
+    const pad = createPad({ actions: { go: ['start'] } })
+    pad.set('gamepad0', 'start', true)
+    pad.sample()
+    expect(state(pad.pause)).toEqual([false, false, false])
+    expect(state(action(pad, 'go'))).toEqual([true, true, false])
+    pad.set('gamepad0', 'start', false)
+    pad.sample()
+    pad.set('keyboard', 'Escape', true)
+    pad.sample()
+    expect(state(pad.pause)).toEqual([true, true, false])
+    expect(state(action(pad, 'go'))).toEqual([false, false, false])
+  })
+})
+
+describe('createPad raw', () => {
+  it('reads Enter as Ⓐ and Escape as Ⓑ, even when actions take them', () => {
+    const pad = createPad({ actions: { shout: ['Enter'], back: ['Escape'] } })
+    pad.set('keyboard', 'Enter', true)
+    pad.set('keyboard', 'Escape', true)
+    pad.sample()
+    expect(state(pad.raw.a)).toEqual([true, true, false])
+    expect(state(pad.raw.b)).toEqual([true, true, false])
+    // The game's own Ⓐ and Ⓑ hear neither.
+    expect(state(pad.input.a)).toEqual([false, false, false])
+    expect(state(pad.input.b)).toEqual([false, false, false])
   })
 })

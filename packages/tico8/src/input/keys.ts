@@ -108,7 +108,6 @@ export const DEFAULT_KEYS: Readonly<Partial<Record<KeyName, ButtonName>>> = {
   KeyS: 'b',
   KeyW: 'x',
   KeyD: 'y',
-  Enter: 'start',
   ShiftLeft: 'select',
   ShiftRight: 'select',
 }

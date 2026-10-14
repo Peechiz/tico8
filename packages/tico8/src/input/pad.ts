@@ -86,6 +86,9 @@ export const createPad: CreatePad = (options = {}) => {
     }
   }
 
+  // What the game's actions named, before buttons and default keys are added.
+  const named = new Set(drives.keys())
+
   // A button or mouse button drives itself, then the actions bound to it.
   const own = (name: string) => {
     const made = slot()
@@ -114,8 +117,22 @@ export const createPad: CreatePad = (options = {}) => {
 
   // A default key stands for its button, unless an action took the key.
   for (const [key, name] of Object.entries(DEFAULT_KEYS)) {
-    if (!drives.has(key)) drives.set(key, drives.get(name) ?? [])
+    if (!named.has(key)) drives.set(key, drives.get(name) ?? [])
   }
+
+  // Start and Escape open the pause menu, unless an action took them.
+  const pausing = slot()
+  if (!named.has('start')) drives.get('start')?.push(pausing)
+  // In a menu Enter confirms as Ⓐ does and Escape goes back as Ⓑ does,
+  // whatever the game bound them to, since a menu mutes the game.
+  const enterKey = slot()
+  const escapeKey = slot()
+  drives.set('Enter', [...(drives.get('Enter') ?? []), enterKey])
+  drives.set('Escape', [
+    ...(drives.get('Escape') ?? []),
+    escapeKey,
+    ...(named.has('Escape') ? [] : [pausing]),
+  ])
 
   /** The controls each device holds down. */
   const holds = new Map<string, Set<string>>()
@@ -203,8 +220,36 @@ export const createPad: CreatePad = (options = {}) => {
     },
   } as FullInput
 
+  /** What opens the pause menu, as the UI sees it: never muted. */
+  const pause: Button = {
+    get held() {
+      return pausing.held
+    },
+    get pressed() {
+      return pausing.pressed
+    },
+    get released() {
+      return pausing.released
+    },
+  }
+
+  /** Two slots read as one button: down while either is. */
+  const either = (one: Slot, other: Slot): Button => ({
+    get held() {
+      return one.held || other.held
+    },
+    get pressed() {
+      return one.pressed || other.pressed
+    },
+    get released() {
+      return (one.released || other.released) && !(one.held || other.held)
+    },
+  })
+
   const raw = {
     ...Object.fromEntries(STANDARD.map((name) => [name, buttons[name]])),
+    a: either(buttons.a, enterKey),
+    b: either(buttons.b, escapeKey),
     get dir() {
       return dir()
     },
@@ -213,6 +258,7 @@ export const createPad: CreatePad = (options = {}) => {
   return {
     input,
     raw,
+    pause,
     mute(on) {
       if (on === muted) return
       muted = on

@@ -179,8 +179,16 @@ export interface Pad {
    * `input`, so the loop calls it between `sample` and the update.
    */
   mute(on: boolean): void
-  /** The standard pad, sampled with `input` and never muted, for the UI. */
+  /**
+   * The standard pad, sampled with `input` and never muted, for the UI.
+   * Enter is Ⓐ here and Escape is Ⓑ, whatever the game bound them to.
+   */
   readonly raw: Input
+  /**
+   * What opens the pause menu, sampled with `input` and never muted: the
+   * controller's Start and the Escape key, each unless an action names it.
+   */
+  readonly pause: Button
 }
 
 /** `src/input/pad.ts` exports `createPad` of this type. */
