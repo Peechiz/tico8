@@ -1,0 +1,100 @@
+/* One CSS pixel is one game pixel, and the pixel font is 6px. */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  justify-content: center;
+  gap: 8px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+  font: inherit;
+}
+
+/* The font doubled: each font pixel is 2x2 game pixels. */
+h1 {
+  font-size: 12px;
+  line-height: 12px;
+  color: var(--yellow);
+}
+
+h2 {
+  color: var(--yellow);
+}
+
+b {
+  font-weight: inherit;
+  color: var(--yellow);
+}
+
+.hud {
+  align-self: stretch;
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 2px 1px;
+  background: var(--black);
+}
+
+.hud .best {
+  color: var(--yellow);
+}
+
+.panel {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--black);
+  border: 1px solid var(--darkGrey);
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.menu button {
+  color: var(--lightGrey);
+  outline: none;
+}
+
+/* The highlight: a yellow star before the focused button. */
+.menu button::before {
+  content: "★ ";
+  visibility: hidden;
+}
+
+.menu button:focus {
+  color: var(--yellow);
+}
+
+.menu button:focus::before {
+  visibility: visible;
+}
+
+.hint {
+  display: flex;
+  gap: 8px;
+  color: var(--lightGrey);
+}
+
+.note {
+  color: var(--darkGrey);
+}
+
+.note.cleared {
+  color: var(--green);
+}

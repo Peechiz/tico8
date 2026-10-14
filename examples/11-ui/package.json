@@ -1,0 +1,11 @@
+{
+  "name": "11-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tico8 dev"
+  },
+  "dependencies": {
+    "tico8": "workspace:*"
+  }
+}

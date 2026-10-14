@@ -96,6 +96,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/tico8
 
+  examples/11-ui:
+    dependencies:
+      tico8:
+        specifier: workspace:*
+        version: link:../../packages/tico8
+
   packages/tico8:
     dependencies:
       preact:
