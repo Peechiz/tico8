@@ -9,6 +9,7 @@ import { FONT } from './text/font.ts'
 import { createText } from './text/text.ts'
 import type { Vec } from './vec.ts'
 
+export type { Sound, SoundOptions } from './audio/types.ts'
 export type { Clock } from './clock.ts'
 export type {
   Actions,

@@ -1,6 +1,8 @@
 import { restoreMaps } from './assets/maps.ts'
 import { ready } from './assets/sheets.ts'
-import { display, pad, palette, settings, time } from './console.ts'
+import { soundsReady } from './assets/sounds.ts'
+import { attachUnlock } from './audio/unlock.ts'
+import { display, mixer, pad, palette, settings, time } from './console.ts'
 import { mount } from './host.ts'
 import { attachGamepads } from './input/gamepad.ts'
 import { attachKeyboard } from './input/keyboard.ts'
@@ -17,13 +19,15 @@ export function run(game: Game): () => void {
   let stop = () => {}
   let stopped = false
 
-  ready().then(() => {
+  Promise.all([ready(), soundsReady()]).then(() => {
     if (stopped) return
     display.clear()
     // A game that changed its maps starts again with them as saved.
     restoreMaps()
     // Game time starts again with the game.
     time.reset()
+    // Effects stop; loops wait to see whether the new game plays them again.
+    mixer.restarting()
     pad.releaseAll()
     const host = mount(document.body, display, palette)
     // Every device feeds the one pad, all the time.
@@ -32,10 +36,23 @@ export function run(game: Game): () => void {
     const detachMouse = settings.mouse
       ? attachMouse(host.canvas, display, pad)
       : () => {}
+    // Browsers play nothing until the player presses something.
+    const detachUnlock = mixer.unlocked
+      ? () => {}
+      : attachUnlock(window, () => mixer.unlock())
+    let settled = false
     const loop = createLoop(game, {
       rate: settings.rate,
       onUpdate: pad.sample,
-      afterUpdate: time.step,
+      afterUpdate() {
+        time.step()
+        // By the end of its first update the game has played the loops it
+        // wants; the old game's others fall silent.
+        if (!settled) {
+          settled = true
+          mixer.settle()
+        }
+      },
       beforeDraw: display.beginFrame,
       onDraw: host.present,
     })
@@ -51,6 +68,7 @@ export function run(game: Game): () => void {
       detachKeyboard()
       gamepads.detach()
       detachMouse()
+      detachUnlock()
       host.destroy()
     }
   })
