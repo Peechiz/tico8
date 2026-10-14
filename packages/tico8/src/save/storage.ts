@@ -5,12 +5,25 @@ declare const __TICO8_PROJECT__: string | undefined
 
 /** A store that lasts as long as the page. */
 export function memoryStore(): SaveStore {
-  throw new Error('not built yet')
+  let text: string | undefined
+  return {
+    load: () => text,
+    store(next) {
+      text = next
+    },
+    remove() {
+      text = undefined
+    },
+  }
 }
 
 /** A store kept under `key` in a browser `Storage`. */
 export function browserStore(storage: Storage, key: string): SaveStore {
-  throw new Error(`not built yet: ${typeof storage} ${key}`)
+  return {
+    load: () => storage.getItem(key) ?? undefined,
+    store: (text) => storage.setItem(key, text),
+    remove: () => storage.removeItem(key),
+  }
 }
 
 /**
@@ -18,5 +31,12 @@ export function browserStore(storage: Storage, key: string): SaveStore {
  * page, a memory store anywhere else.
  */
 export function projectStore(): SaveStore {
-  throw new Error(`not built yet: ${typeof __TICO8_PROJECT__}`)
+  if (typeof __TICO8_PROJECT__ === 'undefined') return memoryStore()
+  try {
+    if (typeof localStorage === 'undefined') return memoryStore()
+    return browserStore(localStorage, `tico8:${__TICO8_PROJECT__}:save`)
+  } catch {
+    // Reading `localStorage` throws when the browser blocks storage.
+    return memoryStore()
+  }
 }
