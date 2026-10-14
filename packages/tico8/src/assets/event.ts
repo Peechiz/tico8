@@ -1,3 +1,5 @@
+import type { SheetInfo } from '../editor/types.ts'
+
 /** Sent by the dev server to the page when a sheet's PNG has new content. */
 export const SHEET_CHANGED = 'tico8:sheet-changed'
 
@@ -32,4 +34,12 @@ export const SOUND_CHANGED = 'tico8:sound-changed'
 export interface SoundChanged {
   /** The file's address from the project root: `/sounds/swing.wav`. */
   url: string
+}
+
+/** Sent by the dev server to the page when the sprites folder's list changes. */
+export const SHEETS_LISTED = 'tico8:sheets-listed'
+
+export interface SheetsListed {
+  /** Every sheet in the folder, sorted by name. */
+  sheets: SheetInfo[]
 }

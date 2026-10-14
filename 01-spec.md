@@ -709,9 +709,27 @@ export function pause() {
 ## Editors
 
 - Sprite editor and map editor, built in.
-- They live in the browser tab beside the running game (Game / Sprites / Map),
-  and are written so the same code can be hosted inside VSCode later.
+- They live in the browser tab beside the running game (Game / Sprites / Map).
+  The browser is their only home; hosting them in an IDE is not a goal.
+- **Tabs with a split toggle.** One tab shows at a time; the toggle shows the
+  game beside the open editor, so a stroke can be watched landing in the game.
+- **The game runs in its own frame** inside the dev page, so keys pressed in
+  an editor never reach the game.
 - They edit the project's files directly, so there is nothing to sync.
+  Each stroke is written to disk when it ends, and a change made to the file
+  by another tool shows up in the editor.
+
+### Sprite editor
+
+- **View:** a few cells zoomed large for painting, with the whole sheet small
+  beside it to pick cells from.
+- **Tools:** pencil, eraser (paints see-through), fill, pick colour, line,
+  rectangle (outline or filled), select with move, copy and paste, flip and
+  rotate, undo and redo.
+- **Colours:** the palette, then any colours the sheet uses from outside it,
+  which can be picked and painted but are not added to the palette.
+- **Sheets:** a picker over the sprites folder; a new sheet is made with a
+  name and a cell size, and a sheet is resized in whole cells.
 
 ## Export and sharing
 
@@ -787,8 +805,6 @@ blocked by a decision above.
   change. Needs engine-supplied random numbers so replays repeat exactly.
 
 **Editors**
-- Hosting the sprite and map editors inside VSCode (click a PNG, get the
-  pixel editor in a tab).
 - A real object layer in the map editor: named objects at pixel positions,
   with properties.
 - Reading `.aseprite` files directly, including its tileset data.

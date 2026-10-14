@@ -100,8 +100,7 @@ chiefly whether the map and tileset files should be openable in Tiled.
 
 ### 4. Built-in editors — large
 Sprite editor first, map editor second (layers, flags, tile rearranging that
-keeps flags and maps in step). They live in the browser tab beside the game
-and are written so VSCode can host them later.
+keeps flags and maps in step). They live in the browser tab beside the game.
 
 ### 5. Audio — small
 Play ordinary audio files from a folder by name. No editor, no synth.
@@ -127,7 +126,7 @@ before any editor work starts.
 
 ## Later
 
-Native desktop build, editors inside VSCode, and the other items under
+Native desktop build and the other items under
 "Optional enhancements" in the spec.
 
 ## Prior art to check before committing
