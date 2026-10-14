@@ -130,13 +130,13 @@ describe('FONT', () => {
   })
 
   it('has every game symbol, each one character long', () => {
-    for (const char of '♥●★♪←↑→↓ⒶⒷⓍⓎ') {
+    for (const char of '♥●★✧♪←↑→↓ⒶⒷⓍⓎ') {
       expect(FONT.glyphs.has(char), char).toBe(true)
     }
-    for (const char of '♥●★♪←↑→↓') {
+    for (const char of '♥●★✧♪←↑→↓') {
       expect(FONT.glyphs.get(char)!.rows[5], char).toBe(0)
     }
-    expect(SYMBOLS.size).toBe(12)
+    expect(SYMBOLS.size).toBe(13)
   })
 
   it('holds all of Tom Thumb and the symbols, with no clashes', () => {

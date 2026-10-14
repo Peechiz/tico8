@@ -59,6 +59,17 @@ export const SYMBOLS: ReadonlyMap<string, Glyph> = new Map([
     `),
   ],
   [
+    '✧',
+    drawn(`
+      .....
+      ..#..
+      .#.#.
+      ..#..
+      .....
+      .....
+    `),
+  ],
+  [
     '♪',
     drawn(`
       ..##.
