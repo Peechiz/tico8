@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Plugin } from 'vite'
+import { PAGE_STYLE } from './export/page.ts'
 import { assetsHmr } from './vite/assets-hmr.ts'
 import { config } from './vite/config.ts'
 import { maps } from './vite/maps.ts'
@@ -32,14 +33,7 @@ const page = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>tico8</title>
     <style>
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-        background: #111;
-      }
+${PAGE_STYLE}
     </style>
   </head>
   <body>

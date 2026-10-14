@@ -1,11 +1,15 @@
+import { relative } from 'node:path'
 import { parseArgs } from 'node:util'
 import { createServer } from 'vite'
+import { exportGame, formatSize, TypeCheckError } from './export/index.ts'
 import { tico8 } from './vite.ts'
 
 const usage = `Usage: tico8 <command>
 
 Commands:
   dev [--port <number>]   Run the game in this folder, restarting it on save
+  export [--out <file>] [--no-check]
+                          Write the game as one HTML file, dist/<project>.html
 `
 
 /** Serve the project in the current folder until the process is stopped. */
@@ -34,11 +38,45 @@ async function dev(args: string[]) {
   })
 }
 
-const [command, ...args] = process.argv.slice(2)
-
-if (command === 'dev') {
+/** Write the project in the current folder as one HTML file. */
+async function exportCommand(args: string[]) {
+  const { values } = parseArgs({
+    args,
+    options: {
+      out: { type: 'string' },
+      'no-check': { type: 'boolean' },
+    },
+  })
+  const root = process.cwd()
   try {
-    await dev(args)
+    const { path, bytes } = await exportGame({
+      root,
+      out: values.out,
+      check: !values['no-check'],
+    })
+    const shown = relative(root, path)
+    const where = shown.startsWith('..') ? path : shown
+    console.log(`Wrote ${where} (${formatSize(bytes)})`)
+  } catch (error) {
+    if (error instanceof TypeCheckError) console.error(error.output)
+    throw error
+  }
+}
+
+const commands: Record<string, (args: string[]) => Promise<void>> = {
+  dev,
+  export: exportCommand,
+}
+
+const [command, ...args] = process.argv.slice(2)
+const run =
+  command !== undefined && Object.hasOwn(commands, command)
+    ? commands[command]
+    : undefined
+
+if (run) {
+  try {
+    await run(args)
   } catch (error) {
     console.error(error instanceof Error ? error.message : error)
     process.exit(1)
