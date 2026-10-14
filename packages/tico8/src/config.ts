@@ -16,6 +16,7 @@ import {
 } from './input/types.ts'
 
 import { PICO8, PICO8_NAMES, type Rgb, readPalette } from './palette.ts'
+import type { SaveData, SaveOf } from './save/types.ts'
 
 /** The project file a config is read from. */
 export const CONFIG_FILE = 'tico8.config.ts'
@@ -75,6 +76,15 @@ export interface Config {
   extras?: boolean
   /** Read the mouse: its position in game pixels and its buttons. Off when left out. */
   mouse?: boolean
+  /**
+   * The game's save and the values it has before anything is written:
+   *
+   *     save: { best: 0, level: 1 }
+   *
+   * Its type is taken from these. It holds numbers, strings, true and
+   * false, null, arrays and plain objects.
+   */
+  save?: SaveData
 }
 
 /**
@@ -95,10 +105,14 @@ export type ColorOf<C extends Config> = C extends { palette: infer Written }
   ? { readonly [Name in keyof Written]: number }
   : typeof PICO8_NAMES
 
-/** A config as `defineConfig` returns it, with the game's names on it. */
-export type Defined<C extends Config> = C & {
+/**
+ * A config as `defineConfig` returns it, with the game's names on it. Its
+ * `save` is the game's save, made from the `save` setting.
+ */
+export type Defined<C extends Config> = Omit<C, 'save'> & {
   readonly input: InputOf<C>
   readonly COLOR: ColorOf<C>
+  readonly save: SaveOf<C>
 }
 
 /** A config with every choice made, as the engine uses it. */
@@ -162,7 +176,7 @@ export function defineConfig<const C extends Config>(config: C): Defined<C> {
   const defined = Object.defineProperties(
     { ...config },
     { input: { value: pad.input }, COLOR: { value: colors } },
-  ) as Defined<C>
+  ) as unknown as Defined<C>
   pads.set(defined, pad)
   return defined
 }
@@ -186,10 +200,11 @@ const settingNames = [
  * Fill in what a config leaves out and check what it says. Throws a
  * `ConfigError` naming the setting that is wrong.
  */
-export function resolveConfig(config: Config = {}): Settings {
-  if (typeof config !== 'object' || config === null || Array.isArray(config)) {
+export function resolveConfig(given: unknown = {}): Settings {
+  if (typeof given !== 'object' || given === null || Array.isArray(given)) {
     throw new ConfigError('the default export must be a config object')
   }
+  const config: Config = given
   for (const key of Object.keys(config)) {
     if (!settingNames.includes(key)) {
       throw new ConfigError(

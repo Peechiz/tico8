@@ -63,9 +63,10 @@ free to differ.
   error in the editor. A project without the file is the standard console.
 - **It holds the short list of overrides** and nothing else: screen size,
   update rate, the palette and the off-palette warning, input actions,
-  extras and the mouse.
+  extras, the mouse and the save's defaults.
 - **`defineConfig` hands back the config with the game's typed names on
-  it:** `COLOR` for its palette and `input` for its actions. The config
+  it:** `COLOR` for its palette, `input` for its actions and `save` for
+  its save. The config
   file exports them and game code imports them from there. Nothing is
   generated.
 - **Saving it restarts the game** by reloading the page. Game state is
@@ -567,6 +568,41 @@ if (input.a.pressed) swing.play()     // update
 - A built-in save that stores a typed object: `save.write({ level: 3 })`.
 - tico8 decides where it is kept, so the same game code works in the browser
   now and against a file in a later desktop build.
+- **The save's shape is a setting in the config:** `save: { best: 0 }`
+  gives the defaults, and its type is inferred from them, widened (`best`
+  is a `number`, not `0`). `defineConfig` hands back `save`, which the
+  config file exports beside `COLOR` and `input`. Nothing is generated.
+- **Fields are read straight off it:** `save.best`. They are readonly, so
+  assigning one is a compile error, and the save only changes through:
+  - `save.write({ best: score })`, which merges the fields given into the
+    save and stores it at once. A field not in the defaults is a compile
+    error.
+  - `save.clear()`, which forgets what was stored, so every field is its
+    default again.
+- **A read never gives undefined.** Before anything is written the save is
+  its defaults. A stored save from an older shape is laid over the
+  defaults: missing fields take their default, fields the defaults no
+  longer have are dropped, and a field whose kind changed (a number that
+  is now a string) takes its default. Objects inside are laid over the
+  same way, field by field.
+- A save holds plain data: numbers, strings, true and false, null, arrays
+  and plain objects. A config whose `save` holds anything else, or a field
+  called `write` or `clear`, is refused by name.
+- In the browser each project keeps its own save, named by its
+  `package.json` name, or its folder's when it has none.
+
+```ts
+// tico8.config.ts
+const config = defineConfig({ save: { best: 0 } })
+export default config
+export const { save } = config
+
+// main.ts
+import { save } from './tico8.config'
+
+if (score > save.best) save.write({ best: score })
+text(`Best ${save.best}`, { x: 2, y: 2 })
+```
 
 ## Pause menu
 
