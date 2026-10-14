@@ -1,8 +1,9 @@
+import { readFile } from 'node:fs/promises'
 import type { Plugin } from 'vite'
 import type { FlagsChanged, MapChanged, SheetChanged } from '../assets/event.ts'
 import { FLAGS_CHANGED, MAP_CHANGED, SHEET_CHANGED } from '../assets/event.ts'
 import { FLAGS_SUFFIX, MAPS_DIR } from './maps.ts'
-import { SPRITES_DIR } from './sprites.ts'
+import { camelCase, SPRITES_DIR } from './sprites.ts'
 
 /** A file name spelled as the generated files spell it in an address. */
 function encodeName(name: string): string {
@@ -27,25 +28,26 @@ function directChild(
 }
 
 /**
- * The address the page looks a map up by, given the file's full path, or
+ * The name a map is exported by from `maps.ts`, given the file's full path, or
  * undefined if the file is not a `.json` file directly in the project's maps
- * folder.
+ * folder. A flags file there is not a map.
  */
-export function mapUrl(root: string, file: string): string | undefined {
+export function mapName(root: string, file: string): string | undefined {
   const name = directChild(root, MAPS_DIR, file)
   if (name === undefined || !/\.json$/i.test(name)) return undefined
-  return `/${MAPS_DIR}/${encodeName(name)}`
+  if (name.endsWith(FLAGS_SUFFIX)) return undefined
+  return camelCase(name.slice(0, -'.json'.length)) || undefined
 }
 
 /**
- * The address the page looks a sheet's flags up by, given the file's full path,
- * or undefined if the file is not a flags file directly in the project's
+ * The sheet name of the tileset a flags file belongs to, given the file's full
+ * path, or undefined if the file is not a flags file directly in the project's
  * sprites folder.
  */
-export function flagsUrl(root: string, file: string): string | undefined {
+export function flagsTileset(root: string, file: string): string | undefined {
   const name = directChild(root, SPRITES_DIR, file)
   if (name === undefined || !name.endsWith(FLAGS_SUFFIX)) return undefined
-  return `/${SPRITES_DIR}/${encodeName(name)}`
+  return camelCase(name.slice(0, -FLAGS_SUFFIX.length)) || undefined
 }
 
 /**
@@ -62,34 +64,62 @@ export function sheetUrl(root: string, file: string): string | undefined {
   return `/${SPRITES_DIR}/${encoded.join('/')}`
 }
 
+/** Parse JSON text, or return undefined if it is not valid. */
+function parseJson(text: string): { value: unknown } | undefined {
+  try {
+    return { value: JSON.parse(text) }
+  } catch {
+    return undefined
+  }
+}
+
 /**
- * Tells the running game when an asset, map or flags file changes, so it swaps live
- * and the game is not restarted.
+ * Tells the running game when an asset, map or flags file changes, so it swaps
+ * live and the game is not restarted. A map or flags file is sent as parsed
+ * contents. If it does not parse, it may be half-written by an editor that
+ * saves in two steps, so it is read once more after `retryDelay` ms.
  */
-export function assetsHmr(): Plugin {
+export function assetsHmr(retryDelay = 100): Plugin {
   return {
     name: 'tico8:assets-hmr',
 
-    hotUpdate({ type, file }) {
+    hotUpdate({ type, file, read }) {
       if (this.environment.name !== 'client' || type === 'delete') return
       const { root } = this.environment.config
       const sheet = sheetUrl(root, file)
-      const map = mapUrl(root, file)
-      const flags = flagsUrl(root, file)
       if (sheet !== undefined) {
         const data: SheetChanged = { url: sheet }
         this.environment.hot.send(SHEET_CHANGED, data)
-      } else if (map !== undefined) {
-        const data: MapChanged = { url: map }
-        this.environment.hot.send(MAP_CHANGED, data)
-      } else if (flags !== undefined) {
-        const data: FlagsChanged = { url: flags }
-        this.environment.hot.send(FLAGS_CHANGED, data)
-      } else return
-      // A file some editors replace rather than rewrite arrives as created.
-      // Leave that to the plugin that writes sprites.ts; for a plain change
-      // the page has all it needs, so nothing is reloaded or re-run.
-      if (type === 'update') return []
+        // A file some editors replace rather than rewrite arrives as created.
+        // Leave that to the plugin that writes sprites.ts; for a plain change
+        // the page has all it needs, so nothing is reloaded or re-run.
+        if (type === 'update') return []
+        return
+      }
+      const map = mapName(root, file)
+      const tiles = map === undefined ? flagsTileset(root, file) : undefined
+      if (map === undefined && tiles === undefined) return
+      const { hot, logger } = this.environment
+      return (async () => {
+        let parsed = parseJson(await read())
+        if (parsed === undefined) {
+          await new Promise((resolve) => setTimeout(resolve, retryDelay))
+          parsed = parseJson(await readFile(file, 'utf8'))
+        }
+        if (parsed === undefined) {
+          const path = file.slice(root.replace(/\/$/, '').length + 1)
+          logger.warn(
+            `[tico8] ${path} was not swapped in: it is not valid JSON.`,
+          )
+        } else if (map !== undefined) {
+          const data: MapChanged = { name: map, data: parsed.value }
+          hot.send(MAP_CHANGED, data)
+        } else if (tiles !== undefined) {
+          const data: FlagsChanged = { tiles, data: parsed.value }
+          hot.send(FLAGS_CHANGED, data)
+        }
+        if (type === 'update') return []
+      })()
     },
   }
 }

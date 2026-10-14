@@ -79,27 +79,28 @@ export function renderMaps(maps: readonly MapEntry[]): string {
     ...defaultImports(flagImports),
     '',
   ]
-  for (const { name, file, tiles, flags } of sorted) {
-    lines.push(
-      `export const ${name} = map({`,
-      `  url: ${address(MAPS_DIR, file)},`,
-      `  data: ${name}_map,`,
-      tiles === 'tiles' ? '  tiles,' : `  tiles: ${tiles},`,
-    )
-    if (flags !== undefined) {
-      const url = address(SPRITES_DIR, flags)
-      const line = `  flags: { url: ${url}, data: ${tiles}_flags },`
-      if (line.length <= lineWidth) lines.push(line)
-      // Broken the way the formatter breaks an object that is too long.
-      else
-        lines.push(
-          '  flags: {',
-          `    url: ${url},`,
-          `    data: ${tiles}_flags,`,
-          '  },',
-        )
+  for (const { name, tiles, flags } of sorted) {
+    // One property to a line even when they would fit on one: the formatter
+    // keeps an object open when its first key is on a line of its own.
+    const props = [
+      `data: ${name}_map,`,
+      tiles === 'tiles' ? 'tiles,' : `tiles: ${tiles},`,
+    ]
+    if (flags !== undefined) props.push(`flags: ${tiles}_flags,`)
+    const open = `export const ${name} = map('${name}', {`
+    if (open.length <= lineWidth) {
+      lines.push(open, ...props.map((prop) => `  ${prop}`), '})')
+      continue
     }
-    lines.push('})')
+    // Broken the way the formatter breaks a call whose name is too long.
+    lines.push(
+      `export const ${name} = map(`,
+      `  '${name}',`,
+      '  {',
+      ...props.map((prop) => `    ${prop}`),
+      '  },',
+      ')',
+    )
   }
   return `${header}${lines.join('\n')}\n`
 }
@@ -307,11 +308,6 @@ function scanFlags(root: string): Map<string, string[]> {
     bySheet.set(sheet, [...(bySheet.get(sheet) ?? []), file])
   }
   return bySheet
-}
-
-/** A file's address on the dev server, as `sprites.ts` spells its own. */
-function address(dir: string, file: string): string {
-  return `'/${dir}/${encodeURIComponent(file).replaceAll("'", '%27')}'`
 }
 
 /**

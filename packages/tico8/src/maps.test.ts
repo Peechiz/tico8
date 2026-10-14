@@ -33,14 +33,13 @@ const tiles = sheetOf(
 const hero = sheetOf(() => COLOR.yellow).sprite()
 
 // What a project's generated `maps.ts` does with its two JSON files.
-const room = map({
-  url: '/maps/room.json',
+const room = map('room', {
   data: {
     tiles: 'tiles',
     layers: { ground: ['0 0'], walls: ['. 1'], front: ['2 .'] },
   },
   tiles,
-  flags: { url: '/sprites/tiles.flags.json', data: { solid: [1] } },
+  flags: { solid: [1] },
 })
 
 function draw(heroX: number) {

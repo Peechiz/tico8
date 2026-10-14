@@ -122,11 +122,10 @@ import room1_map from './maps/room1.json'
 import { tiles } from './sprites'
 import tiles_flags from './sprites/tiles.flags.json'
 
-export const room1 = map({
-  url: '/maps/room1.json',
+export const room1 = map('room1', {
   data: room1_map,
   tiles,
-  flags: { url: '/sprites/tiles.flags.json', data: tiles_flags },
+  flags: tiles_flags,
 })
 `
 
@@ -242,8 +241,7 @@ import { map } from 'tico8/assets'
 import cave_map from './maps/cave.json'
 import { rocks } from './sprites'
 
-export const cave = map({
-  url: '/maps/cave.json',
+export const cave = map('cave', {
   data: cave_map,
   tiles: rocks,
 })
@@ -261,23 +259,20 @@ import room10_map from './maps/room10.json'
 import { tiles } from './sprites'
 import tiles_flags from './sprites/tiles.flags.json'
 
-export const attic = map({
-  url: '/maps/Attic.json',
+export const attic = map('attic', {
   data: attic_map,
   tiles,
-  flags: { url: '/sprites/tiles.flags.json', data: tiles_flags },
+  flags: tiles_flags,
 })
-export const room10 = map({
-  url: '/maps/room10.json',
+export const room10 = map('room10', {
   data: room10_map,
   tiles,
-  flags: { url: '/sprites/tiles.flags.json', data: tiles_flags },
+  flags: tiles_flags,
 })
-export const room2 = map({
-  url: '/maps/room2.json',
+export const room2 = map('room2', {
   data: room2_map,
   tiles,
-  flags: { url: '/sprites/tiles.flags.json', data: tiles_flags },
+  flags: tiles_flags,
 })
 `,
   )
@@ -295,27 +290,23 @@ import { rocks, Town, tiles } from './sprites'
 import Town_flags from './sprites/Town.flags.json'
 import tiles_flags from './sprites/tiles.flags.json'
 
-export const bigCave = map({
-  url: '/maps/big%20cave.json',
+export const bigCave = map('bigCave', {
   data: bigCave_map,
   tiles: rocks,
 })
-export const cave = map({
-  url: '/maps/cave.json',
+export const cave = map('cave', {
   data: cave_map,
   tiles: rocks,
 })
-export const room1 = map({
-  url: '/maps/room1.json',
+export const room1 = map('room1', {
   data: room1_map,
   tiles,
-  flags: { url: '/sprites/tiles.flags.json', data: tiles_flags },
+  flags: tiles_flags,
 })
-export const town = map({
-  url: '/maps/town.json',
+export const town = map('town', {
   data: town_map,
   tiles: Town,
-  flags: { url: '/sprites/Town.flags.json', data: Town_flags },
+  flags: Town_flags,
 })
 `,
   )
@@ -336,31 +327,28 @@ import {
 import theVeryLongNameOfATilesetThatSomeoneThoughtWasWise_flags from './sprites/theVeryLongNameOfATilesetThatSomeoneThoughtWasWise.flags.json'
 import anotherTilesetWithAName_flags from './sprites/x.flags.json'
 
-export const a = map({
-  url: '/maps/a.json',
+export const a = map('a', {
   data: a_map,
   tiles: anotherTilesetWithAName,
-  flags: { url: '/sprites/x.flags.json', data: anotherTilesetWithAName_flags },
+  flags: anotherTilesetWithAName_flags,
 })
-export const b = map({
-  url: '/maps/b.json',
+export const b = map('b', {
   data: b_map,
   tiles,
 })
-export const theDeepestDungeonUnderTheOldMillByTheRiver = map({
-  url: '/maps/the-deepest-dungeon-under-the-old-mill-by-the-river.json',
-  data: theDeepestDungeonUnderTheOldMillByTheRiver_map,
-  tiles: theVeryLongNameOfATilesetThatSomeoneThoughtWasWise,
-  flags: {
-    url: '/sprites/theVeryLongNameOfATilesetThatSomeoneThoughtWasWise.flags.json',
-    data: theVeryLongNameOfATilesetThatSomeoneThoughtWasWise_flags,
+export const theDeepestDungeonUnderTheOldMillByTheRiver = map(
+  'theDeepestDungeonUnderTheOldMillByTheRiver',
+  {
+    data: theDeepestDungeonUnderTheOldMillByTheRiver_map,
+    tiles: theVeryLongNameOfATilesetThatSomeoneThoughtWasWise,
+    flags: theVeryLongNameOfATilesetThatSomeoneThoughtWasWise_flags,
   },
-})
+)
 `,
   )
 })
 
-it('encodes addresses and quotes import paths for odd file names', () => {
+it('quotes import paths for odd file names', () => {
   const text = renderMaps([
     { name: 'bobS', file: "bob's #1.json", tiles: 'tiles' },
     { name: 'big', file: 'the "big" one.json', tiles: 'tiles' },
@@ -368,11 +356,10 @@ it('encodes addresses and quotes import paths for odd file names', () => {
     { name: 'back', file: 'back\\slash.json', tiles: 'tiles' },
   ])
   expect(text).toContain(`import bobS_map from "./maps/bob's #1.json"\n`)
-  expect(text).toContain(`  url: '/maps/bob%27s%20%231.json',\n`)
+  expect(text).toContain("export const bobS = map('bobS', {\n")
   expect(text).toContain(`import big_map from './maps/the "big" one.json'\n`)
   expect(text).toContain(`import both_map from './maps/both \\' and ".json'\n`)
   expect(text).toContain(`import back_map from './maps/back\\\\slash.json'\n`)
-  expect(text).toContain(`  url: '/maps/back%5Cslash.json',\n`)
 })
 
 it('renders an empty module for no maps', () => {
@@ -386,6 +373,13 @@ export {}
 it('is text that Biome leaves alone', () => {
   const sets: MapEntry[][] = [
     [],
+    // The shortest there is: it would fit on one line, and stays open.
+    [{ name: 'a', file: 'a.json', tiles: 't' }],
+    [{ name: 'a', file: 'a.json', tiles: 'tiles' }],
+    // Names either side of the longest that leaves the call on one line.
+    ...[26, 27, 28, 29, 40].map((length) => [
+      { name: 'n'.repeat(length), file: 'n.json', tiles: 't', flags: 'f.json' },
+    ]),
     [
       {
         name: 'room1',
@@ -592,7 +586,5 @@ it('leaves the file alone until its text would change', () => {
   // So is a flags file arriving beside the tileset.
   writeFileSync(join(root, SPRITES_DIR, 'rocks.flags.json'), '{}')
   expect(writeMaps(root).changed).toBe(true)
-  expect(generated(root)).toContain(
-    "  flags: { url: '/sprites/rocks.flags.json', data: rocks_flags },\n",
-  )
+  expect(generated(root)).toContain('  flags: rocks_flags,\n')
 })

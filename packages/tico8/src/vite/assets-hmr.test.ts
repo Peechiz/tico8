@@ -1,7 +1,10 @@
+import { readFile } from 'node:fs/promises'
 import { describe, expect, it, vi } from 'vitest'
 import { FLAGS_CHANGED, MAP_CHANGED, SHEET_CHANGED } from '../assets/event.ts'
-import { assetsHmr, flagsUrl, mapUrl, sheetUrl } from './assets-hmr.ts'
+import { assetsHmr, flagsTileset, mapName, sheetUrl } from './assets-hmr.ts'
 import { parseSheetFile, renderSprites } from './sprites.ts'
+
+vi.mock('node:fs/promises', () => ({ readFile: vi.fn() }))
 
 describe('sheetUrl', () => {
   it('gives the address of a PNG in the sprites folder', () => {
@@ -29,110 +32,159 @@ describe('sheetUrl', () => {
   })
 })
 
-describe('mapUrl', () => {
-  it('gives the address of a JSON file in the maps folder', () => {
-    expect(mapUrl('/game', '/game/maps/room1.json')).toBe('/maps/room1.json')
-    expect(mapUrl('/game/', '/game/maps/big boss.json')).toBe(
-      '/maps/big%20boss.json',
-    )
-    expect(mapUrl('/game', "/game/maps/it's#1.json")).toBe(
-      '/maps/it%27s%231.json',
-    )
+describe('mapName', () => {
+  it('gives the export name of a JSON file in the maps folder', () => {
+    expect(mapName('/game', '/game/maps/room1.json')).toBe('room1')
+    expect(mapName('/game/', '/game/maps/big-room.json')).toBe('bigRoom')
+    expect(mapName('/game', '/game/maps/big boss.JSON')).toBe('bigBoss')
   })
 
   it('ignores every other file', () => {
-    expect(mapUrl('/game', '/game/maps/sub/room1.json')).toBeUndefined()
-    expect(mapUrl('/game', '/game/maps/.hidden.json')).toBeUndefined()
-    expect(mapUrl('/game', '/game/maps/room1.png')).toBeUndefined()
-    expect(mapUrl('/game', '/game/sprites/room1.json')).toBeUndefined()
-    expect(mapUrl('/game', '/other/maps/room1.json')).toBeUndefined()
-    expect(mapUrl('/game', '/game2/maps/room1.json')).toBeUndefined()
+    expect(mapName('/game', '/game/maps/sub/room1.json')).toBeUndefined()
+    expect(mapName('/game', '/game/maps/.hidden.json')).toBeUndefined()
+    expect(mapName('/game', '/game/maps/room1.png')).toBeUndefined()
+    expect(mapName('/game', '/game/maps/---.json')).toBeUndefined()
+    expect(mapName('/game', '/game/maps/tiles.flags.json')).toBeUndefined()
+    expect(mapName('/game', '/game/sprites/room1.json')).toBeUndefined()
+    expect(mapName('/game', '/other/maps/room1.json')).toBeUndefined()
+    expect(mapName('/game', '/game2/maps/room1.json')).toBeUndefined()
   })
 })
 
-describe('flagsUrl', () => {
-  it('gives the address of a flags file in the sprites folder', () => {
-    expect(flagsUrl('/game', '/game/sprites/tiles.16.flags.json')).toBe(
-      '/sprites/tiles.16.flags.json',
+describe('flagsTileset', () => {
+  it('gives the sheet name of a flags file in the sprites folder', () => {
+    expect(flagsTileset('/game', '/game/sprites/tiles.flags.json')).toBe(
+      'tiles',
     )
-    expect(flagsUrl('/game/', "/game/sprites/it's.flags.json")).toBe(
-      '/sprites/it%27s.flags.json',
+    expect(flagsTileset('/game/', '/game/sprites/big-tiles.flags.json')).toBe(
+      'bigTiles',
     )
   })
 
   it('ignores every other file', () => {
-    expect(flagsUrl('/game', '/game/sprites/sub/a.flags.json')).toBeUndefined()
-    expect(flagsUrl('/game', '/game/sprites/tiles.json')).toBeUndefined()
-    expect(flagsUrl('/game', '/game/sprites/tiles.png')).toBeUndefined()
-    expect(flagsUrl('/game', '/game/maps/tiles.flags.json')).toBeUndefined()
-    expect(flagsUrl('/game', '/other/sprites/a.flags.json')).toBeUndefined()
+    expect(
+      flagsTileset('/game', '/game/sprites/sub/a.flags.json'),
+    ).toBeUndefined()
+    expect(flagsTileset('/game', '/game/sprites/tiles.json')).toBeUndefined()
+    expect(flagsTileset('/game', '/game/sprites/tiles.png')).toBeUndefined()
+    expect(flagsTileset('/game', '/game/sprites/.flags.json')).toBeUndefined()
+    expect(flagsTileset('/game', '/game/maps/tiles.flags.json')).toBeUndefined()
+    expect(flagsTileset('/game', '/other/sprites/a.flags.json')).toBeUndefined()
   })
 })
 
 describe('assetsHmr', () => {
-  function change(type: string, file: string, environment = 'client') {
+  async function change(
+    type: string,
+    file: string,
+    text = '{}',
+    environment = 'client',
+  ) {
     const send = vi.fn()
-    const hook = assetsHmr().hotUpdate as unknown as (
+    const warn = vi.fn()
+    const hook = assetsHmr(0).hotUpdate as unknown as (
       this: unknown,
-      options: { type: string; file: string },
+      options: { type: string; file: string; read: () => string },
     ) => unknown
-    const result = hook.call(
+    const result = await hook.call(
       {
         environment: {
           name: environment,
           config: { root: '/game' },
           hot: { send },
+          logger: { warn },
         },
       },
-      { type, file },
+      { type, file, read: () => text },
     )
-    return { send, result }
+    return { send, warn, result }
   }
 
-  it('tells the page and stops Vite when a sheet changes', () => {
-    const { send, result } = change('update', '/game/sprites/player.png')
+  it('tells the page and stops Vite when a sheet changes', async () => {
+    const { send, result } = await change('update', '/game/sprites/player.png')
     expect(send).toHaveBeenCalledWith(SHEET_CHANGED, {
       url: '/sprites/player.png',
     })
     expect(result).toEqual([])
   })
 
-  it('tells the page and stops Vite when a map changes', () => {
-    const { send, result } = change('update', '/game/maps/room1.json')
-    expect(send).toHaveBeenCalledWith(MAP_CHANGED, { url: '/maps/room1.json' })
+  it('sends a changed map with its contents and stops Vite', async () => {
+    const { send, result } = await change(
+      'update',
+      '/game/maps/big-room.json',
+      '{"width":2}',
+    )
+    expect(send).toHaveBeenCalledWith(MAP_CHANGED, {
+      name: 'bigRoom',
+      data: { width: 2 },
+    })
     expect(result).toEqual([])
   })
 
-  it('tells the page and stops Vite when a flags file changes', () => {
-    const { send, result } = change('update', '/game/sprites/t.flags.json')
+  it('sends changed flags with their contents and stops Vite', async () => {
+    const { send, result } = await change(
+      'update',
+      '/game/sprites/t.flags.json',
+      '[1,2]',
+    )
     expect(send).toHaveBeenCalledWith(FLAGS_CHANGED, {
-      url: '/sprites/t.flags.json',
+      tiles: 't',
+      data: [1, 2],
     })
     expect(send).toHaveBeenCalledTimes(1)
     expect(result).toEqual([])
   })
 
-  it('tells the page about a replaced map but leaves the rest to others', () => {
-    const { send, result } = change('create', '/game/maps/room1.json')
+  it('reads a half-written map again and sends the second read', async () => {
+    vi.mocked(readFile).mockResolvedValueOnce('{"width":3}')
+    const { send, warn, result } = await change(
+      'update',
+      '/game/maps/room1.json',
+      '',
+    )
+    expect(send).toHaveBeenCalledWith(MAP_CHANGED, {
+      name: 'room1',
+      data: { width: 3 },
+    })
+    expect(warn).not.toHaveBeenCalled()
+    expect(result).toEqual([])
+  })
+
+  it('sends nothing and warns if the file is still not JSON', async () => {
+    vi.mocked(readFile).mockResolvedValueOnce('{"wid')
+    const { send, warn, result } = await change(
+      'update',
+      '/game/maps/room1.json',
+      '',
+    )
+    expect(send).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalledWith(
+      '[tico8] maps/room1.json was not swapped in: it is not valid JSON.',
+    )
+    expect(result).toEqual([])
+  })
+
+  it('tells the page about a replaced map but leaves the rest to others', async () => {
+    const { send, result } = await change('create', '/game/maps/room1.json')
     expect(send).toHaveBeenCalledTimes(1)
     expect(result).toBeUndefined()
   })
 
-  it('tells the page about a replaced file but leaves the rest to others', () => {
-    const { send, result } = change('create', '/game/sprites/player.png')
+  it('tells the page about a replaced file but leaves the rest to others', async () => {
+    const { send, result } = await change('create', '/game/sprites/player.png')
     expect(send).toHaveBeenCalledTimes(1)
     expect(result).toBeUndefined()
   })
 
-  it('stays out of deletions, other files and other environments', () => {
+  it('stays out of deletions, other files and other environments', async () => {
     for (const { send, result } of [
-      change('delete', '/game/sprites/player.png'),
-      change('update', '/game/main.ts'),
-      change('update', '/game/sprites/player.png', 'ssr'),
-      change('delete', '/game/maps/room1.json'),
-      change('update', '/game/maps/room1.json', 'ssr'),
-      change('delete', '/game/sprites/t.flags.json'),
-      change('update', '/game/sprites/t.flags.json', 'ssr'),
+      await change('delete', '/game/sprites/player.png'),
+      await change('update', '/game/main.ts'),
+      await change('update', '/game/sprites/player.png', '', 'ssr'),
+      await change('delete', '/game/maps/room1.json'),
+      await change('update', '/game/maps/room1.json', '{}', 'ssr'),
+      await change('delete', '/game/sprites/t.flags.json'),
+      await change('update', '/game/sprites/t.flags.json', '{}', 'ssr'),
     ]) {
       expect(send).not.toHaveBeenCalled()
       expect(result).toBeUndefined()

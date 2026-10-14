@@ -10,14 +10,18 @@ export interface SheetChanged {
 export const MAP_CHANGED = 'tico8:map-changed'
 
 export interface MapChanged {
-  /** The file's address from the project root: `/maps/room1.json`. */
-  url: string
+  /** The name the map is exported by from `maps.ts`: `room1`. */
+  name: string
+  /** The file's JSON, parsed and not yet checked. */
+  data: unknown
 }
 
 /** Sent by the dev server to the page when a flags file has new content. */
 export const FLAGS_CHANGED = 'tico8:flags-changed'
 
 export interface FlagsChanged {
-  /** The file's address from the project root: `/sprites/tiles.flags.json`. */
-  url: string
+  /** The tileset the flags belong to, by its sheet's name: `tiles`. */
+  tiles: string
+  /** The file's JSON, parsed and not yet checked. */
+  data: unknown
 }

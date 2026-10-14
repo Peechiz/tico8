@@ -11,51 +11,41 @@ import type { FlagsChanged, MapChanged } from './event.ts'
 import { FLAGS_CHANGED, MAP_CHANGED } from './event.ts'
 
 /**
- * How long to wait before the one second try at a file that would not
- * load. An editor that saves in two steps can be caught between them.
- */
-export const RETRY_DELAY = 100
-
-/**
  * What the generated `maps.ts` hands over for one map: the two files as
- * imported, each with the address it can be fetched from again. The
- * layers' and flags' names are read off the types of the imports.
+ * imported. The layers' and flags' names are read off the types of the
+ * imports.
  */
 export interface MapSource<L extends string, F extends string> {
-  /** The map file's address from the project root: `/maps/room1.json`. */
-  url: string
   /** The map file, as imported. */
   data: { tiles: string; layers: Record<L, readonly string[]> }
   /** The tileset's sheet. */
   tiles: Sheet
-  /** The tileset's flags file, when it has one. */
-  flags?: { url: string; data: Record<F, readonly number[]> }
+  /** The tileset's flags file, as imported, when it has one. */
+  flags?: Record<F, readonly number[]>
 }
 
 export interface MapsOptions {
   screen: Screen
-  /** Fetch the JSON at an address, parsed, never from the browser's cache. */
-  load(url: string): Promise<unknown>
-  /** Milliseconds before the second try. Defaults to `RETRY_DELAY`. */
-  retryDelay?: number
 }
 
 export interface Maps {
   map<L extends string, F extends string = never>(
+    name: string,
     source: MapSource<L, F>,
   ): TileMap<L, F>
-  /** Fetch a changed map file and swap it into its map. Never rejects. */
-  reload(url: string): Promise<void>
-  /** Fetch a changed flags file and swap it into every map using it. */
-  reloadFlags(url: string): Promise<void>
+  /** Put a changed map file's contents into the map of that name. */
+  swap(name: string, data: unknown): void
+  /** Put a changed flags file's contents into every map on that tileset. */
+  swapFlags(tiles: string, data: unknown): void
   /** Put every map back as its file has it, undoing what a game `set`. */
   restore(): void
 }
 
-function reportFailure(url: string, error: unknown, outcome: string): void {
+/** `what` names the file and ends in its verb: `map room1 was`. */
+function reportFailure(what: string, error: unknown, outcome: string): void {
   const message = error instanceof Error ? error.message : String(error)
   const reason = message.replace(/\.$/, '')
-  console.error(`tico8: ${url} was not loaded: ${reason}. ${outcome}`)
+  console.error(`tico8: ${what} not loaded: ${reason}. ${outcome}`)
 }
 
 /**
@@ -74,110 +64,88 @@ function emptyData(file: unknown): MapData {
   return data
 }
 
-/** The maps of one console, by address. `load` is passed in for tests. */
+/** The maps of one console, by the name each is exported by. */
 export function createMaps(options: MapsOptions): Maps {
-  const { screen, load, retryDelay = RETRY_DELAY } = options
+  const { screen } = options
 
   interface Entry {
     map: LoadableMap
-    /** The address of the flags file its tileset has, if any. */
-    flagsUrl: string | undefined
+    /** The name of its tileset, as its map file has it, if that can be read. */
+    tiles: string | undefined
     /** Whether a file has been read into it, or it is still empty. */
     loaded: boolean
   }
 
   const registry = new Map<string, Entry>()
-  /** Loads started, by address. A load that is no longer the last gives up. */
-  const turns = new Map<string, number>()
-
-  /**
-   * Load `url`, read it with `parse` and hand the result to `put`. Never
-   * rejects, and puts nothing if the file is bad or a newer load of the
-   * same address has started since. `outcome` ends the report of a failure.
-   */
-  async function fill<T>(
-    url: string,
-    parse: (file: unknown) => T,
-    put: (value: T) => void,
-    outcome: () => string,
-  ) {
-    const turn = (turns.get(url) ?? 0) + 1
-    turns.set(url, turn)
-    const stale = () => turn !== turns.get(url)
-    try {
-      let file: unknown
-      try {
-        file = await load(url)
-      } catch {
-        if (stale()) return
-        await new Promise((resolve) => setTimeout(resolve, retryDelay))
-        if (stale()) return
-        file = await load(url)
-      }
-      if (stale()) return
-      put(parse(file))
-    } catch (error) {
-      if (!stale()) reportFailure(url, error, outcome())
-    }
-  }
 
   return {
-    map<L extends string, F extends string = never>(source: MapSource<L, F>) {
+    map<L extends string, F extends string = never>(
+      name: string,
+      source: MapSource<L, F>,
+    ) {
+      const named: unknown = (source.data as { tiles?: unknown } | null)?.tiles
+      const tiles = typeof named === 'string' ? named : undefined
+
       let flags: FlagData | undefined
       if (source.flags) {
         try {
-          flags = parseFlags(source.flags.data)
+          flags = parseFlags(source.flags)
         } catch (error) {
-          reportFailure(source.flags.url, error, 'The map has no flags.')
+          const what =
+            tiles === undefined
+              ? `the flags of map ${name} were`
+              : `the flags of tileset ${tiles} were`
+          reportFailure(what, error, 'The map has no flags.')
         }
       }
 
       const entry: Entry = {
         map: createMap(screen, source.tiles, undefined, flags),
-        flagsUrl: source.flags?.url,
+        tiles,
         loaded: false,
       }
       try {
         entry.map.setData(parseMap(source.data))
         entry.loaded = true
       } catch (error) {
-        reportFailure(source.url, error, 'The map stays empty.')
+        reportFailure(`map ${name} was`, error, 'The map stays empty.')
         entry.map.setData(emptyData(source.data))
       }
 
       // Asked for again when the generated file is re-run: the game that
       // starts next holds this map, so it replaces the one before.
-      registry.set(source.url, entry)
+      registry.set(name, entry)
       return entry.map.map as unknown as TileMap<L, F>
     },
 
-    async reload(url) {
-      const entry = registry.get(url)
+    swap(name, data) {
+      const entry = registry.get(name)
       if (!entry) return
-      await fill(
-        url,
-        parseMap,
-        (data) => {
-          entry.map.setData(data)
-          entry.loaded = true
-        },
-        () => (entry.loaded ? 'The old map stays.' : 'The map stays empty.'),
-      )
+      try {
+        const parsed = parseMap(data)
+        entry.map.setData(parsed)
+        entry.tiles = parsed.tiles
+        entry.loaded = true
+      } catch (error) {
+        const outcome = entry.loaded
+          ? 'The old map stays.'
+          : 'The map stays empty.'
+        reportFailure(`map ${name} was`, error, outcome)
+      }
     },
 
-    async reloadFlags(url) {
-      // Looked up when the file arrives, so a map made meanwhile gets it too.
-      const using = () =>
-        [...registry.values()].filter((entry) => entry.flagsUrl === url)
-      if (using().length === 0) return
-      await fill(
-        url,
-        parseFlags,
-        (flags) => {
-          for (const entry of using()) entry.map.setFlags(flags)
-        },
-        () => 'The old flags stay.',
+    swapFlags(tiles, data) {
+      const using = [...registry.values()].filter(
+        (entry) => entry.tiles === tiles,
       )
+      if (using.length === 0) return
+      try {
+        const flags = parseFlags(data)
+        for (const entry of using) entry.map.setFlags(flags)
+      } catch (error) {
+        const what = `the flags of tileset ${tiles} were`
+        reportFailure(what, error, 'The old flags stay.')
+      }
     },
 
     restore() {
@@ -186,25 +154,17 @@ export function createMaps(options: MapsOptions): Maps {
   }
 }
 
-/** Fetch a JSON file under an address the browser has not fetched before. */
-async function loadJson(url: string): Promise<unknown> {
-  const response = await fetch(`${url}?t=${Date.now()}`)
-  if (!response.ok) {
-    throw new Error(`${response.status} ${response.statusText}`.trim())
-  }
-  return response.json()
-}
-
-const maps = createMaps({ screen: display, load: loadJson })
+const maps = createMaps({ screen: display })
 
 /**
  * A map that draws to the console's screen. Called by the generated
  * `maps.ts`, not by game code.
  */
 export function map<L extends string, F extends string = never>(
+  name: string,
   source: MapSource<L, F>,
 ): TileMap<L, F> {
-  return maps.map(source)
+  return maps.map(name, source)
 }
 
 /** Put every map back as its file has it. Called when a game starts. */
@@ -215,10 +175,10 @@ export function restoreMaps(): void {
 // Listen here and not in the game's entry: the entry runs again on every
 // code change, this module only once per page.
 if (import.meta.hot) {
-  import.meta.hot.on(MAP_CHANGED, ({ url }: MapChanged) => {
-    maps.reload(url)
+  import.meta.hot.on(MAP_CHANGED, ({ name, data }: MapChanged) => {
+    maps.swap(name, data)
   })
-  import.meta.hot.on(FLAGS_CHANGED, ({ url }: FlagsChanged) => {
-    maps.reloadFlags(url)
+  import.meta.hot.on(FLAGS_CHANGED, ({ tiles, data }: FlagsChanged) => {
+    maps.swapFlags(tiles, data)
   })
 }
