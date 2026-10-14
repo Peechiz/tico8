@@ -1,0 +1,12 @@
+{
+  "name": "14-sprites",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tico8 dev",
+    "export": "tico8 export"
+  },
+  "dependencies": {
+    "tico8": "workspace:*"
+  }
+}
