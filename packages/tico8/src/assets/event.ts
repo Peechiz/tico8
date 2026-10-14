@@ -25,3 +25,11 @@ export interface FlagsChanged {
   /** The file's JSON, parsed and not yet checked. */
   data: unknown
 }
+
+/** Sent by the dev server to the page when a sound file has new content. */
+export const SOUND_CHANGED = 'tico8:sound-changed'
+
+export interface SoundChanged {
+  /** The file's address from the project root: `/sounds/swing.wav`. */
+  url: string
+}

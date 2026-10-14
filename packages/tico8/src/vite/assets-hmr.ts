@@ -64,6 +64,15 @@ export function sheetUrl(root: string, file: string): string | undefined {
   return `/${SPRITES_DIR}/${encoded.join('/')}`
 }
 
+/**
+ * The address the page loads a sound from, given the file's full path, or
+ * undefined if the file is not a wav, ogg or mp3 directly in the project's
+ * sounds folder. Spelled as the generated `sounds.ts` spells it.
+ */
+export function soundUrl(root: string, file: string): string | undefined {
+  throw new Error(`not built yet: ${root} ${file}`)
+}
+
 /** Parse JSON text, or return undefined if it is not valid. */
 function parseJson(text: string): { value: unknown } | undefined {
   try {
