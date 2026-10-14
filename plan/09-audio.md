@@ -2,10 +2,10 @@
 
 ## Demo
 
-`examples/08-animation` grows sound: a `sounds` folder with a swing effect
-and a looping theme. The attack plays the swing, overlapping when pressed
-fast, and the theme starts on the first key press and loops at a lower
-volume. Saving `main.ts` restarts the game without restarting the theme.
+`examples/09-audio`, a copy of example 08 with sound added: a `sounds`
+folder with a swing effect and a looping theme. The attack plays the swing,
+overlapping when pressed fast, and the theme starts on the first key press
+and loops at a lower volume. Saving `main.ts` restarts the game without restarting the theme.
 Saving a sound file swaps it in the running game.
 
 ## Spec
@@ -22,7 +22,7 @@ Saving a sound file swaps it in the running game.
   wait and start on it.
 - **A code restart keeps loops the new game plays again,** stops the rest.
 - **wav, ogg and mp3.**
-- **The demo grows example 08,** at the user's choice.
+- **The demo is a new example,** example 08 copied with sound added.
 
 ## Layout
 
@@ -101,7 +101,7 @@ changes copies already sounding.
 - [x] **7. Demo.** The scene under "Demo": the two sound files, made with
   ffmpeg, `sounds.ts` as the dev tool writes it, and the attack and theme
   in `main.ts`.
-  Owns: `examples/08-animation/`. Waits on: 1.
+  Owns: `examples/09-audio/`. Waits on: 1.
 - [x] **8. Wire up.** Lead only. `tico8/assets` exports `sound`; `index.ts`
   exports the new types; the sounds plugin joins the dev tool; the console
   has one mixer over web audio in a browser and none elsewhere; `run` waits
@@ -119,7 +119,7 @@ changes copies already sounding.
   on it; a restart keeping a loop played again and stopping one that was
   not; a sound file swapped in; and generated `sounds.ts` matching a
   fixture project, with a name clash left out.
-- `pnpm lint` and `pnpm typecheck` pass, and in example 08 a sound that is
+- `pnpm lint` and `pnpm typecheck` pass, and in example 09 a sound that is
   not in the folder is a compile error.
 - `pnpm dev` shows the Demo: the theme starts on the first key press, the
   attack swings with sound, saving `main.ts` does not restart the theme.
