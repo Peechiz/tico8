@@ -199,6 +199,8 @@ hero.draw()                                    // draw
 - **A one-shot ends on its last frame,** and from the update its last frame
   has shown its full time `hero.finished` is true. It is false for a
   looping animation, and goes back to false when another starts.
+- An animation with no frames, or an fps that is not above 0, is refused:
+  `play` throws, saying which.
 - Not offered yet: a helper for animating tiles and particles drawn with
   `tiles.draw` (a game works the frame out from `clock`), and animations
   named in the art.

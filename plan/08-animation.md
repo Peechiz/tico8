@@ -51,13 +51,13 @@ and from that call `finished` is true.
   rate; `clock` and the new types exported from `tico8`.
   Owns: `src/clock.ts`, `src/index.ts`, the declarations in `src/loop.ts`
   and `src/sprites.ts`. Waits on: none.
-- [ ] **2. Clock.** `createClock(rate)`: `ticks` and `seconds` start at 0,
+- [x] **2. Clock.** `createClock(rate)`: `ticks` and `seconds` start at 0,
   `step` adds one update, `reset` puts both back; neither can be assigned
   by a game. The loop calls `afterUpdate` after every update it runs and
   not for one it drops, and not after `init`.
   Owns: `src/clock.ts` (body), `src/clock.test.ts`, `src/loop.ts` (body),
   `src/loop.test.ts`. Waits on: 1.
-- [ ] **3. Playing.** `sprite.play`: the frame by the rule under "Layout"
+- [x] **3. Playing.** `sprite.play`: the frame by the rule under "Layout"
   at 30 and 60 updates a second; the same animation (same frames, fps and
   loop, even as a new object) carries on and a different one starts from
   its first frame; `restart` starts over; a one-shot holds its last frame
@@ -65,14 +65,14 @@ and from that call `finished` is true.
   starts; an animation with no frames, or an fps that is not above 0, is
   refused with a message naming why.
   Owns: `src/sprites.ts` (body), `src/animation.test.ts`. Waits on: 1.
-- [ ] **4. Demo.** The scene under "Demo": a copy of example 07's room
+- [x] **4. Demo.** The scene under "Demo": a copy of example 07's room
   and tiles, a player sheet with stand, walk and attack frames, and
   `main.ts`.
   Owns: `examples/08-animation/`. Waits on: 1.
-- [ ] **5. Port example 07.** Its walk frame comes from `play` instead of
+- [x] **5. Port example 07.** Its walk frame comes from `play` instead of
   the figure's position.
   Owns: `examples/07-maps/main.ts`. Waits on: 1.
-- [ ] **6. Wire up.** Lead only. The console keeps one clock at the
+- [x] **6. Wire up.** Lead only. The console keeps one clock at the
   project's rate; `run` resets it before `init` and steps it after each
   update; sheets are made with the project's rate; a test that plays an
   animation on a sprite on the console's screen through several updates
@@ -96,4 +96,12 @@ and from that call `finished` is true.
 
 ## Decisions made
 
-None yet.
+- **Demo: the hero cannot move while attacking.** Walking is skipped
+  until `hero.finished`, so the swing plays in place.
+- **Refusals:** `play` throws `tico8: an animation needs at least one
+  frame` and `tico8: an animation needs an fps above 0, got <fps>`.
+- **The clock counts after each update,** through a new `afterUpdate` hook
+  in the loop, so an update dropped after a long gap is never counted.
+- **Sheets take the update rate** (`createSheet(screen, w, h, rate)`), since
+  a sprite turns `fps` into updates itself.
+
