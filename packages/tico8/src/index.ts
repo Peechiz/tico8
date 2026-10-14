@@ -1,5 +1,5 @@
 import type { Clock } from './clock.ts'
-import { colors, display, clock as gameClock, pad } from './console.ts'
+import { colors, display, clock as gameClock, mixer, pad } from './console.ts'
 import type { Input } from './input/types.ts'
 import { PICO8_NAMES } from './palette.ts'
 import type { Rect, Shape } from './shapes.ts'
@@ -78,6 +78,18 @@ export const input: Input = pad.input
  * update rate: `if (clock.seconds % 1 < 0.5) prompt.draw()`.
  */
 export const clock: Clock = gameClock
+
+/**
+ * The console's sound, read-only. `audio.unlocked` is false until the
+ * player's first key press, click or tap, when the browser lets sound
+ * through; a controller does not count. A game can show "Press a key for
+ * sound" until then.
+ */
+export const audio: { readonly unlocked: boolean } = {
+  get unlocked() {
+    return mixer.unlocked
+  },
+}
 
 /** Fill the whole screen with one colour, such as `COLOR.black`. */
 export function clear(color = 0): void {

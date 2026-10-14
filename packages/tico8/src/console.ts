@@ -24,7 +24,7 @@ export const clock = time.clock
 function silentAudio(): AudioOut {
   return {
     decode: async () => ({ duration: 0 }),
-    start: () => ({ setGain() {}, stop() {} }),
+    start: () => ({ setGain() {}, stop() {}, pause() {}, resume() {} }),
     resume() {},
   }
 }

@@ -1,6 +1,7 @@
 import { restoreMaps } from './assets/maps.ts'
 import { ready } from './assets/sheets.ts'
 import { soundsReady } from './assets/sounds.ts'
+import { rememberSound } from './audio/settings.ts'
 import { attachUnlock } from './audio/unlock.ts'
 import { display, mixer, pad, palette, settings, time } from './console.ts'
 import { mount } from './host.ts'
@@ -9,6 +10,7 @@ import { attachKeyboard } from './input/keyboard.ts'
 import { attachMouse } from './input/mouse.ts'
 import type { Game } from './loop.ts'
 import { createLoop } from './loop.ts'
+import { createPause } from './pause.ts'
 import { addFont } from './ui/font.ts'
 import { createLayer } from './ui/layer.ts'
 import { createNav } from './ui/nav.ts'
@@ -33,12 +35,26 @@ export function run(game: Game): () => void {
     mixer.restarting()
     pad.releaseAll()
     const host = mount(document.body, display, palette)
-    // The UI layer sits over the screen. A game with no `ui` leaves it empty.
+    // The UI layer sits over the screen. Every game has one, since every
+    // game can pause; one with no `ui` leaves it empty until then.
     addFont(document)
     const nav = createNav()
-    const layer = game.ui
-      ? createLayer(host.overlay, { colors: settings.colors, palette, nav })
-      : undefined
+    const layer = createLayer(host.overlay, {
+      colors: settings.colors,
+      palette,
+      nav,
+    })
+    // The player's sound settings from the pause menu, kept from last time.
+    const sound = rememberSound()
+    Object.assign(mixer, sound.load())
+    const pause = createPause({
+      game,
+      pad,
+      nav,
+      mixer,
+      actions: settings.actions,
+      sound,
+    })
     // Every device feeds the one pad, all the time.
     const detachKeyboard = attachKeyboard(window, pad)
     const gamepads = attachGamepads(navigator, pad)
@@ -54,13 +70,13 @@ export function run(game: Game): () => void {
       rate: settings.rate,
       onUpdate() {
         pad.sample()
-        // While a menu is on screen the pad is the UI's, not the game's.
-        pad.mute(nav.active)
-        nav.step(pad.raw)
+        pause.step()
       },
+      // Under the pause menu the game neither updates nor draws.
+      frozen: () => pause.paused,
       afterUpdate() {
-        time.step()
-        layer?.render(game.ui?.())
+        if (!pause.paused) time.step()
+        layer.render(pause.ui())
         // By the end of its first update the game has played the loops it
         // wants; the old game's others fall silent.
         if (!settled) {
@@ -84,7 +100,9 @@ export function run(game: Game): () => void {
       gamepads.detach()
       detachMouse()
       detachUnlock()
-      layer?.destroy()
+      // Held effects are let go, so a restart's `restarting` stops them.
+      pause.close()
+      layer.destroy()
       pad.mute(false)
       host.destroy()
     }
