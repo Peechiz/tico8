@@ -63,7 +63,7 @@ checked.
   refusing an unknown field.
   Owns: `src/save/types.ts`, `src/save/types.test.ts`, the declarations in
   every file below. Waits on: none.
-- [ ] **2. Save object.** `overlay(defaults, stored)` as under "Layout",
+- [x] **2. Save object.** `overlay(defaults, stored)` as under "Layout",
   copying so neither argument is shared with the result.
   `createSave(defaults, store)`: reads the store on first use of a field,
   `write` or `clear`; `write` merges the top-level fields given (skipping
@@ -72,25 +72,25 @@ checked.
   with a console warning. A store that throws is warned about once, and the
   save carries on in memory.
   Owns: `src/save/save.ts`, `src/save/save.test.ts`. Waits on: 1.
-- [ ] **3. Config check.** `readSave(written)`: undefined gives `{}`; a
+- [x] **3. Config check.** `readSave(written)`: undefined gives `{}`; a
   plain object of plain data gives itself; anything else throws a message
   naming the field, by its path (`save.opts.speed`), and what it holds:
   a function, `undefined`, NaN or Infinity, a class instance such as a
   `Date`, a field called `write` or `clear`.
   Owns: `src/save/check.ts`, `src/save/check.test.ts`. Waits on: 1.
-- [ ] **4. Storage.** `memoryStore()`; `browserStore(storage, key)` over
+- [x] **4. Storage.** `memoryStore()`; `browserStore(storage, key)` over
   any `Storage`; `projectStore()`: `browserStore(localStorage,
   'tico8:<project>:save')` when there is a `localStorage` and
   `__TICO8_PROJECT__` is defined, else `memoryStore()`.
   Owns: `src/save/storage.ts`, `src/save/storage.test.ts`. Waits on: 1.
-- [ ] **5. Project name.** `projectName(root)`: the `name` in the root's
+- [x] **5. Project name.** `projectName(root)`: the `name` in the root's
   `package.json`, else the folder's name. `project()`: a Vite plugin that
   defines `__TICO8_PROJECT__` as it.
   Owns: `src/vite/project.ts`, `src/vite/project.test.ts`. Waits on: 1.
-- [ ] **6. Demo.** The game under "Demo", with its config, package and no
+- [x] **6. Demo.** The game under "Demo", with its config, package and no
   assets.
   Owns: `examples/10-save/`. Waits on: 1.
-- [ ] **7. Wire up.** Lead only. `save` joins the config's settings,
+- [x] **7. Wire up.** Lead only. `save` joins the config's settings,
   checked by `readSave`; `defineConfig` hands back `save` made with
   `projectStore`; `index.ts` exports the types; the project plugin joins
   the dev tool; a test that writes through one defined config and reads it
@@ -116,3 +116,12 @@ checked.
 
 - A default of `null` only accepts a stored `null`: the kinds must match.
 - Two tabs of one game share a save; the last write wins.
+- Stored text that is not JSON warns once with its own message; a store that
+  throws (or cannot be made) warns once for the whole save, whichever of
+  load, store or remove fails first, and the save keeps working in memory.
+- The save holds its values deeply frozen, so a game cannot change one in
+  place; `write` copies what it is given.
+- `defineConfig` keeps the config as written, and `resolveConfig` checks
+  that, since a defined config's `save` is the game's save, not the setting.
+- `examples/04-text` told players Ⓐ was the Z key, from before slice 06
+  moved the pad to A, S, W and D; its hint now says the A key.

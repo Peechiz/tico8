@@ -590,6 +590,14 @@ if (input.a.pressed) swing.play()     // update
   called `write` or `clear`, is refused by name.
 - In the browser each project keeps its own save, named by its
   `package.json` name, or its folder's when it has none.
+- A default of `null` only accepts a stored `null`. An array is taken
+  whole when the stored value is an array; its items are not checked.
+- Fields are frozen, however deep, and `write` copies what it is given, so
+  a game cannot change the save in place.
+- A stored save that is not JSON gives the defaults, with a warning in the
+  browser console. Storage that cannot be read or written is warned about
+  once, and the save carries on until the page closes.
+- Two tabs of one game share a save; the last write wins.
 
 ```ts
 // tico8.config.ts
