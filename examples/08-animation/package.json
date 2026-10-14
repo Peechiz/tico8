@@ -1,0 +1,11 @@
+{
+  "name": "08-animation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tico8 dev"
+  },
+  "dependencies": {
+    "tico8": "workspace:*"
+  }
+}
