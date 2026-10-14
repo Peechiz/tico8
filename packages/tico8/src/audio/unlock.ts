@@ -9,5 +9,13 @@ export function attachUnlock(
   target: EventTarget,
   unlock: () => void,
 ): () => void {
-  throw new Error(`not built yet: ${typeof target} ${typeof unlock}`)
+  const detach = () => {
+    for (const type of UNLOCK_EVENTS) target.removeEventListener(type, onPress)
+  }
+  const onPress = () => {
+    detach()
+    unlock()
+  }
+  for (const type of UNLOCK_EVENTS) target.addEventListener(type, onPress)
+  return detach
 }
