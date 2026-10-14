@@ -143,12 +143,12 @@ export function draw() {
   if (state === 'title') {
     title.text = 'Star Catcher'
     title.draw()
-    hint.text = `Ⓐ starts a round\n(Ⓐ is the A key)\n\n← → move\nBest ${save.best}`
+    hint.text = `Press Ⓐ to start\n\n← → move\nBest ${save.best}`
     hint.draw()
 
     // A bar fills while Ⓑ is held.
     const held = holdStart === undefined ? 0 : clock.seconds - holdStart
-    text(cleared ? 'Best cleared' : 'Hold Ⓑ (S) to clear', {
+    text(cleared ? 'Best cleared' : 'Hold Ⓑ to clear', {
       x: SCREEN.width / 2,
       y: 100,
       color: cleared ? COLOR.green : COLOR.darkGrey,
@@ -185,7 +185,7 @@ export function draw() {
   if (state === 'over') {
     title.text = newBest ? 'New best!' : 'Time!'
     title.draw()
-    text('Ⓐ for the title', {
+    text('Press Ⓐ for the title', {
       x: SCREEN.width / 2,
       y: 56,
       color: COLOR.lightGrey,
