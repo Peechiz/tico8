@@ -25,6 +25,7 @@ Slices whose "needs" are all `done` can run in parallel.
 | 16 | [Package build](16-package-build.md) | 05 | small | todo | The demo run from an installed copy of the package, not the workspace source |
 | 17 | [Scaffold](17-scaffold.md) | 05, 16 | small | todo | `npm create tico8` makes a project that runs |
 | 18 | [CLI info commands](18-cli-info.md) | 05 | small | todo | `tico8 palette` prints the palette with colour swatches in the terminal |
+| 19 | [Input tester](19-input-tester.md) | 12 | small | todo | The controls screen lights up each row while its button is held |
 
 ## Lanes after slice 02
 
@@ -32,7 +33,7 @@ Slices whose "needs" are all `done` can run in parallel.
 - Input: 05, 06
 - World: 07
 - Sound and storage: 09, 10
-- UI: 11, 12
+- UI: 11, 12, 19
 - Shipping: 13, 16, 17
 - Tooling: 18
 - Editors: 14, 15
