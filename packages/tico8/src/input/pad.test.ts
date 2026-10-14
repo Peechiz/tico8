@@ -493,3 +493,91 @@ describe('createPad releaseAll', () => {
     expect(state(pad.input.a)).toEqual([true, false, false])
   })
 })
+
+describe('createPad mute', () => {
+  const setup = () => {
+    const pad = createPad({ actions: { jump: ['a', 'Space'] } })
+    pad.set('keyboard', 'a', true)
+    pad.set('keyboard', 'left', true)
+    pad.set('keyboard', 'MouseLeft', true)
+    pad.stick('gamepad0', 'left', 0, 0.3)
+    pad.stick('gamepad0', 'right', 0, 1)
+    pad.sample()
+    return pad
+  }
+
+  it('reads everything idle while on', () => {
+    const pad = setup()
+    pad.mute(true)
+    const idle = [false, false, false]
+    expect(state(pad.input.a)).toEqual(idle)
+    expect(state(action(pad, 'jump'))).toEqual(idle)
+    for (const name of [...STANDARD, ...EXTRAS]) {
+      expect(state(pad.input[name] as Button)).toEqual(idle)
+    }
+    for (const b of [
+      pad.input.mouse.left,
+      pad.input.mouse.right,
+      pad.input.mouse.middle,
+    ]) {
+      expect(state(b)).toEqual(idle)
+    }
+    expect(pad.input.dir).toEqual({ x: 0, y: 0 })
+    expect(pad.input.leftStick).toEqual({ x: 0, y: 0 })
+    expect(pad.input.rightStick).toEqual({ x: 0, y: 0 })
+  })
+
+  it('keeps the mouse position moving', () => {
+    const pad = createPad()
+    pad.mute(true)
+    pad.point(12, 34, true)
+    pad.sample()
+    expect(pad.input.mouse).toMatchObject({ x: 12, y: 34, inside: true })
+  })
+
+  it('leaves raw unmuted', () => {
+    const pad = setup()
+    pad.mute(true)
+    expect(state(pad.raw.a)).toEqual([true, true, false])
+    expect(pad.raw.dir).toEqual({ x: -1, y: 0 })
+    pad.set('keyboard', 'a', false)
+    pad.sample()
+    expect(state(pad.raw.a)).toEqual([false, false, true])
+  })
+
+  it('shows a button held through the mute as held, not pressed', () => {
+    const pad = setup()
+    pad.mute(true)
+    pad.sample()
+    pad.mute(false)
+    expect(state(pad.input.a)).toEqual([true, false, false])
+    expect(state(action(pad, 'jump'))).toEqual([true, false, false])
+    expect(pad.input.dir).toEqual({ x: -1, y: 0 })
+    pad.sample()
+    expect(state(pad.input.a)).toEqual([true, false, false])
+    pad.set('keyboard', 'a', false)
+    pad.sample()
+    expect(state(pad.input.a)).toEqual([false, false, true])
+  })
+
+  it('hides a press that began under the mute', () => {
+    const pad = createPad()
+    pad.mute(true)
+    pad.set('keyboard', 'a', true)
+    pad.sample()
+    pad.mute(false)
+    expect(state(pad.input.a)).toEqual([true, false, false])
+  })
+
+  it('makes a press after the mute a normal press', () => {
+    const pad = setup()
+    pad.mute(true)
+    pad.sample()
+    pad.mute(false)
+    pad.set('keyboard', 'a', false)
+    pad.sample()
+    pad.set('keyboard', 'a', true)
+    pad.sample()
+    expect(state(pad.input.a)).toEqual([true, true, false])
+  })
+})

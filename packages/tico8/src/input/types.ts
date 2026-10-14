@@ -174,7 +174,9 @@ export interface Pad {
   /**
    * While on, every button, action, mouse button, `dir` and stick of
    * `input` reads as idle; the mouse position still moves. A button held
-   * when it ends is `held` but not `pressed`. A `<Menu>` mutes the game.
+   * when it ends is `held` but not `pressed`, and is `released` when let
+   * go. A `<Menu>` mutes the game. It takes effect on the next read of
+   * `input`, so the loop calls it between `sample` and the update.
    */
   mute(on: boolean): void
   /** The standard pad, sampled with `input` and never muted, for the UI. */

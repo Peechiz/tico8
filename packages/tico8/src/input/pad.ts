@@ -2,10 +2,12 @@ import type { Vec } from '../vec.ts'
 import { DEFAULT_KEYS } from './keys.ts'
 import {
   type Binding,
+  type Button,
   type ButtonName,
   type CreatePad,
   EXTRAS,
   type FullInput,
+  type Input,
   MOUSE_BUTTONS,
   STANDARD,
 } from './types.ts'
@@ -27,6 +29,8 @@ interface Slot {
   down: boolean
   pendingPress: boolean
   pendingRelease: boolean
+  /** Held when a mute ended: its press is not the game's to see. */
+  carried: boolean
 }
 
 function createSlot(): Slot {
@@ -37,6 +41,7 @@ function createSlot(): Slot {
     down: false,
     pendingPress: false,
     pendingRelease: false,
+    carried: false,
   }
 }
 
@@ -92,6 +97,21 @@ export const createPad: CreatePad = (options = {}) => {
   for (const name of [...STANDARD, ...EXTRAS]) buttons[name] = own(name)
   const [left, right, middle] = MOUSE_BUTTONS.map(own) as [Slot, Slot, Slot]
 
+  let muted = false
+
+  /** What game code reads of a slot: idle while muted, no press while carried. */
+  const view = (each: Slot): Button => ({
+    get held() {
+      return !muted && each.held
+    },
+    get pressed() {
+      return !muted && !each.carried && each.pressed
+    },
+    get released() {
+      return !muted && each.released
+    },
+  })
+
   // A default key stands for its button, unless an action took the key.
   for (const [key, name] of Object.entries(DEFAULT_KEYS)) {
     if (!drives.has(key)) drives.set(key, drives.get(name) ?? [])
@@ -113,9 +133,9 @@ export const createPad: CreatePad = (options = {}) => {
     x: 0,
     y: 0,
     inside: false,
-    left,
-    right,
-    middle,
+    left: view(left),
+    right: view(right),
+    middle: view(middle),
   }
 
   /** Work out which slots are down from what the devices hold. */
@@ -159,31 +179,45 @@ export const createPad: CreatePad = (options = {}) => {
 
   const axis = (neg: Slot, pos: Slot) => (pos.held ? 1 : 0) - (neg.held ? 1 : 0)
 
+  const dir = (): Vec => ({
+    x: axis(buttons.left, buttons.right),
+    y: axis(buttons.up, buttons.down),
+  })
+
   const input = {
-    ...actions,
-    ...buttons,
+    ...Object.fromEntries(
+      Object.entries(actions).map(([name, each]) => [name, view(each)]),
+    ),
+    ...Object.fromEntries(
+      Object.entries(buttons).map(([name, each]) => [name, view(each)]),
+    ),
     mouse,
     get dir() {
-      return {
-        x: axis(buttons.left, buttons.right),
-        y: axis(buttons.up, buttons.down),
-      }
+      return muted ? { x: 0, y: 0 } : dir()
     },
     get leftStick() {
-      return { x: stick.left.x, y: stick.left.y }
+      return muted ? { x: 0, y: 0 } : { x: stick.left.x, y: stick.left.y }
     },
     get rightStick() {
-      return { x: stick.right.x, y: stick.right.y }
+      return muted ? { x: 0, y: 0 } : { x: stick.right.x, y: stick.right.y }
     },
   } as FullInput
 
+  const raw = {
+    ...Object.fromEntries(STANDARD.map((name) => [name, buttons[name]])),
+    get dir() {
+      return dir()
+    },
+  } as Input
+
   return {
     input,
-    get raw(): never {
-      throw new Error('not yet')
-    },
-    mute() {
-      throw new Error('not yet')
+    raw,
+    mute(on) {
+      if (on === muted) return
+      muted = on
+      // What was held through the mute keeps its press hidden until it is up.
+      if (!on) for (const each of slots) each.carried = each.held
     },
     wants(control: Binding) {
       return (drives.get(control)?.length ?? 0) > 0
@@ -244,6 +278,7 @@ export const createPad: CreatePad = (options = {}) => {
           each.pendingPress = false
           each.pendingRelease = false
         }
+        if (!each.held || each.pressed) each.carried = false
       }
       stick.left = furthest('left')
       stick.right = furthest('right')
