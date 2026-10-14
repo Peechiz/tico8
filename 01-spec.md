@@ -550,6 +550,8 @@ export function ui() {
   silent. Reloading the page starts everything from nothing.
 - Saving a sound file swaps it live: new plays use the new file, and a loop
   under way starts again with it.
+- A volume outside 0 to 1 is held to it. A sound file that will not load
+  plays nothing, with a warning in the browser console.
 
 ```ts
 import { swing, theme } from './sounds'

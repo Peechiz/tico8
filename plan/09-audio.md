@@ -63,7 +63,7 @@ changes copies already sounding.
   of every file below; the event the dev tool sends.
   Owns: `src/audio/types.ts`, `src/assets/event.ts`, the declarations in
   every file below. Waits on: none.
-- [ ] **2. Mixer.** `createMixer(out)`: one-off copies overlap; a loop has
+- [x] **2. Mixer.** `createMixer(out)`: one-off copies overlap; a loop has
   one copy and playing it again only takes the new per-play volume; `stop`
   stops every copy; volume as under "Layout", applied to copies sounding;
   `playing`; before `unlock` effects are dropped and loops wait, starting on
@@ -71,14 +71,14 @@ changes copies already sounding.
   loops not played since; `setClip` swaps a sound's clip and starts a loop
   under way again with it; a sound with no clip plays nothing.
   Owns: `src/audio/mixer.ts`, `src/audio/mixer.test.ts`. Waits on: 1.
-- [ ] **3. Browser audio.** `createWebAudio()`: an `AudioOut` over one
+- [x] **3. Browser audio.** `createWebAudio()`: an `AudioOut` over one
   `AudioContext`, with a gain node per copy and one for the master volume.
   `attachUnlock(target, unlock)`: calls `unlock` once on the first
   `keydown`, `pointerdown` or `touchend`, then stops listening; returns a
   function that stops listening early.
   Owns: `src/audio/web.ts`, `src/audio/unlock.ts`,
   `src/audio/unlock.test.ts`. Waits on: 1.
-- [ ] **4. Loading and live swap.** `createSounds` keeps a console's sounds
+- [x] **4. Loading and live swap.** `createSounds` keeps a console's sounds
   by address: `sound(url)` hands back a sound at once and fetches and
   decodes its file, trying a file that will not load once more; asked for
   the same address again (the generated file re-run), it hands back the
@@ -88,21 +88,21 @@ changes copies already sounding.
   decode. A file that cannot be used is reported in the console and its
   sound plays nothing. The page listens for the change event.
   Owns: `src/assets/sounds.ts`, `src/assets/sounds.test.ts`. Waits on: 1.
-- [ ] **5. Generated references.** The Vite plugin writes `sounds.ts` as
+- [x] **5. Generated references.** The Vite plugin writes `sounds.ts` as
   under "Layout" for a project with a `sounds` folder, at start and when
   the folder changes: wav, ogg and mp3 files directly in it, named as
   sheets are named. Two files that would take the same name are both left
   out with a warning in the terminal, as is a name that cannot be used.
   Owns: `src/vite/sounds.ts`, `src/vite/sounds.test.ts`. Waits on: 1.
-- [ ] **6. Change events.** Saving a sound file sends its address to the
+- [x] **6. Change events.** Saving a sound file sends its address to the
   page and stops Vite restarting the game.
   Owns: `src/vite/assets-hmr.ts`, `src/vite/assets-hmr.test.ts`.
   Waits on: 1.
-- [ ] **7. Demo.** The scene under "Demo": the two sound files, made with
+- [x] **7. Demo.** The scene under "Demo": the two sound files, made with
   ffmpeg, `sounds.ts` as the dev tool writes it, and the attack and theme
   in `main.ts`.
   Owns: `examples/08-animation/`. Waits on: 1.
-- [ ] **8. Wire up.** Lead only. `tico8/assets` exports `sound`; `index.ts`
+- [x] **8. Wire up.** Lead only. `tico8/assets` exports `sound`; `index.ts`
   exports the new types; the sounds plugin joins the dev tool; the console
   has one mixer over web audio in a browser and none elsewhere; `run` waits
   for sounds with sheets, attaches the unlock, and calls `restarting`
@@ -127,4 +127,23 @@ changes copies already sounding.
 
 ## Decisions made
 
-None yet.
+- Browser audio has no master gain node: the mixer folds the master volume
+  into each voice's gain, so each copy has just its own gain node.
+- Demo sounds are made with ffmpeg: `swing.wav` is a 0.16 s mono 22050 Hz
+  square blip sweeping down; `theme.ogg` is an 8 s Am-F-C-G square arpeggio
+  at 120 bpm (4 bars, no fades). This ffmpeg has no libvorbis, so the ogg is
+  from its native `vorbis` encoder, which only writes stereo.
+- **Volumes are held to 0..1,** and NaN counts as 0, for the master, a
+  sound and one play alike.
+- **A loop played before its file has loaded** waits as one before the
+  first press does: it counts as `playing` and starts once both have come.
+  A one-off with no clip yet is dropped.
+- `settle` with no `restarting` before it does nothing.
+- **A sound file that will not load or decode** warns `tico8: <url> was not
+  loaded: <reason>. The sound plays nothing.` (on a reload, `The old sound
+  stays.`). Only a file that will not load is tried twice.
+- **`run` settles after the game's first update,** so a loop played from
+  `init` or the first update carries on; the first press is listened for on
+  `window`.
+- Outside a browser (tests) the console's mixer plays through a silent
+  output.
