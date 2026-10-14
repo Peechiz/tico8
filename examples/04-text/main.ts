@@ -141,8 +141,8 @@ export function update() {
   // A label's words can change; its box and alignment follow.
   title.text = won ? 'All found! ★' : 'Tiny Words'
   hint.text = won
-    ? 'Ⓐ plays again\n(Ⓐ is the Z key)'
-    : '← → walk, Ⓐ jump\ncollect every ●\n(Ⓐ is the Z key)'
+    ? 'Ⓐ plays again\n(Ⓐ is the A key)'
+    : '← → walk, Ⓐ jump\ncollect every ●\n(Ⓐ is the A key)'
   if (won && input.a.pressed) init()
 
   cam.x = body.x + body.width / 2 - SCREEN.width / 2
