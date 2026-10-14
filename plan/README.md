@@ -15,7 +15,7 @@ Slices whose "needs" are all `done` can run in parallel.
 | 06 | [Input](06-input.md) | 05 | medium | done | Jump on a named action, from keyboard and controller |
 | 07 | [Maps](07-maps.md) | 02 | medium | done | A room with layers the sprite walks between and solid walls |
 | 08 | [Animation and clock](08-animation.md) | 07 | small | done | The figure walking on a named animation, with no frame arithmetic in the game |
-| 09 | [Audio](09-audio.md) | 02 | small | todo | A sound played on a button press |
+| 09 | [Audio](09-audio.md) | 02 | small | doing | A sound played on a button press |
 | 10 | [Save](10-save.md) | 02 | small | todo | A high score that survives a page reload |
 | 11 | [UI layer](11-ui.md) | 04, 06 | medium | todo | A JSX HUD and a menu driven by the pad |
 | 12 | [Pause menu](12-pause-menu.md) | 09, 11 | small | todo | Built-in pause with volume and a controls screen |
