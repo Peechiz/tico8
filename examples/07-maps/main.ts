@@ -2,6 +2,10 @@ import { COLOR, camera, clear, input, rect, SCREEN, text, vec } from 'tico8'
 import { room1 } from './maps'
 import { player, tiles } from './sprites'
 
+// Animations are plain data: frames and how many a second they play.
+const walk = { frames: [0, 1], fps: 8 }
+const stand = { frames: [0], fps: 1 }
+
 // A sprite knows where it is and how big, so it is also the box walls stop.
 const hero = player.sprite()
 const cam = vec()
@@ -34,7 +38,7 @@ export function update() {
 
   if (dir.x !== 0) hero.flipX = dir.x < 0
   const moving = dir.x !== 0 || dir.y !== 0
-  hero.frame = moving ? Math.floor((hero.x + hero.y) / 4) % player.frames : 0
+  hero.play(moving ? walk : stand)
 
   // Keep the hero mid-screen, and the camera inside the map.
   cam.x = hero.x + hero.width / 2 - SCREEN.width / 2
