@@ -20,3 +20,16 @@ node scripts/font.js
 
 The game symbols (`♥ ● ★ ♪ ← ↑ → ↓ Ⓐ Ⓑ Ⓧ Ⓨ`) are not part of Tom Thumb. They
 are drawn by hand in `packages/tico8/src/text/symbols.ts`.
+
+## Regenerating the web font
+
+The UI layer draws HTML text in `packages/tico8/src/ui/tico8.otf`, the
+console's `FONT` (Tom Thumb and the symbols) drawn as 100-unit squares. It
+is generated too. After changing the font data or the script, run:
+
+```
+node scripts/webfont.js
+```
+
+`packages/tico8/src/ui/font.test.ts` reads the file back and fails if any
+glyph no longer matches its pixels.
