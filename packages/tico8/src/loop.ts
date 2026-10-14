@@ -10,6 +10,8 @@ export interface LoopOptions {
   rate: number
   /** Called before each `update`, to sample input. */
   onUpdate?(): void
+  /** Called after each `update` that runs, to count it. */
+  afterUpdate?(): void
   /** Called before each `draw`, to start the frame clean. */
   beforeDraw?(): void
   /** Called after each `draw`, to put the screen in front of the player. */

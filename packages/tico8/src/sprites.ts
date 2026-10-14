@@ -45,6 +45,25 @@ export interface CellPixel {
 }
 
 /**
+ * Frames of a sheet shown one after another: `{ frames: [0, 1], fps: 8 }`.
+ * Plain data, so one can be named once and played by many sprites.
+ */
+export interface Animation {
+  /** The cells to show, in order. At least one. */
+  readonly frames: readonly number[]
+  /** How many of them to show a second. Above 0. */
+  readonly fps: number
+  /** False to play once and stay on the last frame. Loops if not given. */
+  readonly loop?: boolean
+}
+
+/** How to play an animation: `hero.play(attack, { restart: true })`. */
+export interface PlayOptions {
+  /** Start from the first frame even if this animation is already playing. */
+  restart?: boolean
+}
+
+/**
  * One thing on screen made from a sheet. It holds where it is and how it
  * looks, and with its `width` and `height` it is a rect, so it can be
  * handed to anything that takes one: `walls.overlaps(hero, 'solid')`.
@@ -64,6 +83,19 @@ export interface Sprite {
   swap: Swap | undefined
   /** Draw every pixel in this one colour, until set back to undefined. */
   flash: number | undefined
+  /**
+   * Move an animation on one update and show its frame. Call it once each
+   * update. The same animation (same frames, fps and loop) carries on; a
+   * different one starts from its first frame. Throws for an animation with
+   * no frames or an fps that is not above 0.
+   */
+  play(animation: Animation, options?: PlayOptions): void
+  /**
+   * True once a `loop: false` animation has shown its last frame for its
+   * full time. False while one is under way, for a looping one, and before
+   * anything has played.
+   */
+  readonly finished: boolean
   /** Draw it where it is. */
   draw(): void
   /** Draw it somewhere else, without moving it. */
@@ -109,11 +141,15 @@ export interface LoadableSheet extends Sheet {
   setImage(image: IndexedImage): void
 }
 
-/** A sheet that draws to `screen`. It draws nothing until it has an image. */
+/**
+ * A sheet that draws to `screen`. It draws nothing until it has an image.
+ * Its sprites play animations at `rate` updates a second.
+ */
 export function createSheet(
   screen: Screen,
   cellWidth: number,
   cellHeight: number,
+  rate = 30,
 ): LoadableSheet {
   let image: IndexedImage | undefined
   let columns = 0
@@ -200,6 +236,10 @@ export function createSheet(
         swap: undefined,
         flash: undefined,
         ...init,
+        play(_animation: Animation, _options?: PlayOptions): void {
+          throw new Error(`not built yet at ${rate} updates a second`)
+        },
+        finished: false,
         draw(a?: number | Readonly<Vec>, b?: number): void {
           const at = a ?? sprite
           const [x, y] = typeof at === 'number' ? [at, b!] : [at.x, at.y]

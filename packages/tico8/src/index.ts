@@ -1,4 +1,5 @@
-import { colors, display, pad } from './console.ts'
+import type { Clock } from './clock.ts'
+import { colors, display, clock as gameClock, pad } from './console.ts'
 import type { Input } from './input/types.ts'
 import { PICO8_NAMES } from './palette.ts'
 import type { Rect, Shape } from './shapes.ts'
@@ -8,6 +9,7 @@ import { FONT } from './text/font.ts'
 import { createText } from './text/text.ts'
 import type { Vec } from './vec.ts'
 
+export type { Clock } from './clock.ts'
 export type {
   Actions,
   Binding,
@@ -30,7 +32,9 @@ export type {
   Shape,
 } from './shapes.ts'
 export type {
+  Animation,
   DrawOptions,
+  PlayOptions,
   Sheet,
   Sprite,
   SpriteInit,
@@ -65,6 +69,13 @@ export const SCREEN: { readonly width: number; readonly height: number } =
  * of its own imports `input` from its `tico8.config.ts` instead.
  */
 export const input: Input = pad.input
+
+/**
+ * Game time, read-only: `clock.ticks` counts updates and `clock.seconds` is
+ * that in seconds. Time things in seconds so they last the same at either
+ * update rate: `if (clock.seconds % 1 < 0.5) prompt.draw()`.
+ */
+export const clock: Clock = gameClock
 
 /** Fill the whole screen with one colour, such as `COLOR.black`. */
 export function clear(color = 0): void {

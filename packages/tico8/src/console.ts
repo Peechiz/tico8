@@ -1,3 +1,4 @@
+import { createClock } from './clock.ts'
 import { padOf, resolveConfig } from './config.ts'
 import { createPad } from './input/pad.ts'
 import { lightest, type Rgb } from './palette.ts'
@@ -11,6 +12,10 @@ export const settings = resolveConfig(project)
 export const display = createScreen(settings.width, settings.height)
 // A config made by `defineConfig` brings the pad its game already reads.
 export const pad = padOf(project) ?? createPad({ actions: settings.actions })
+
+// Game time at the project's update rate. `run` steps and resets it.
+export const time = createClock(settings.rate)
+export const clock = time.clock
 
 // Every colour the screen can show. The first `colors.size` are the game's
 // palette; colours found in imported art are added after them.
