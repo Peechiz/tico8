@@ -174,3 +174,93 @@ describe('afterUpdate', () => {
     expect(after).toBe(updates)
   })
 })
+
+describe('frozen', () => {
+  function frozenLoop(frozen: { on: boolean }) {
+    const calls: string[] = []
+    const loop = createLoop(
+      {
+        init: () => calls.push('init'),
+        update: () => calls.push('update'),
+        draw: () => calls.push('draw'),
+      },
+      {
+        rate: 30,
+        frozen: () => frozen.on,
+        onUpdate: () => calls.push('onUpdate'),
+        afterUpdate: () => calls.push('afterUpdate'),
+        beforeDraw: () => calls.push('beforeDraw'),
+        onDraw: () => calls.push('onDraw'),
+      },
+    )
+    return { calls, loop }
+  }
+
+  it('skips update and every draw hook but still runs the update hooks', () => {
+    const frozen = { on: false }
+    const { calls, loop } = frozenLoop(frozen)
+    loop.tick(0)
+    calls.length = 0
+    frozen.on = true
+    loop.tick(70)
+    expect(calls).toEqual([
+      'onUpdate',
+      'afterUpdate',
+      'onUpdate',
+      'afterUpdate',
+    ])
+  })
+
+  it('resumes update and draw when unfrozen', () => {
+    const frozen = { on: false }
+    const { calls, loop } = frozenLoop(frozen)
+    loop.tick(0)
+    frozen.on = true
+    loop.tick(40)
+    calls.length = 0
+    frozen.on = false
+    loop.tick(75)
+    expect(calls).toEqual([
+      'onUpdate',
+      'update',
+      'afterUpdate',
+      'beforeDraw',
+      'draw',
+      'onDraw',
+    ])
+  })
+
+  it('takes effect in the same update when onUpdate freezes', () => {
+    const frozen = { on: false }
+    const calls: string[] = []
+    const loop = createLoop(
+      { update: () => calls.push('update'), draw: () => calls.push('draw') },
+      {
+        rate: 30,
+        frozen: () => frozen.on,
+        onUpdate: () => {
+          frozen.on = true
+        },
+        afterUpdate: () => calls.push('after'),
+      },
+    )
+    loop.tick(0)
+    expect(calls).toEqual(['after'])
+  })
+
+  it('keeps the timing while frozen', () => {
+    const frozen = { on: true }
+    const { calls, loop } = frozenLoop(frozen)
+    loop.tick(0)
+    loop.tick(60_000)
+    expect(calls.filter((c) => c === 'afterUpdate')).toHaveLength(
+      1 + MAX_CATCH_UP,
+    )
+  })
+
+  it('always runs init, even when frozen on the first tick', () => {
+    const { calls, loop } = frozenLoop({ on: true })
+    loop.tick(0)
+    expect(calls).toEqual(['init', 'onUpdate', 'afterUpdate'])
+  })
+})
