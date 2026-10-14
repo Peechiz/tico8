@@ -4,6 +4,7 @@ import type { Plugin } from 'vite'
 import { assetsHmr } from './vite/assets-hmr.ts'
 import { config } from './vite/config.ts'
 import { maps } from './vite/maps.ts'
+import { project } from './vite/project.ts'
 import { sounds } from './vite/sounds.ts'
 import { sprites } from './vite/sprites.ts'
 
@@ -60,7 +61,7 @@ if (import.meta.hot) {
 
 /** Everything `tico8 dev` adds to Vite for a project folder. */
 export function tico8(): Plugin[] {
-  return [core(), config(), sprites(), maps(), sounds(), assetsHmr()]
+  return [core(), config(), project(), sprites(), maps(), sounds(), assetsHmr()]
 }
 
 function core(): Plugin {

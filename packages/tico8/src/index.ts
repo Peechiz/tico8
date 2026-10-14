@@ -24,6 +24,7 @@ export type {
 } from './input/types.ts'
 export type { Game } from './loop.ts'
 export type { Layer, PlacedTile, Tile, TileMap } from './maps/types.ts'
+export type { Save, SaveData, SaveValue } from './save/types.ts'
 export type {
   Circle,
   Drawn,

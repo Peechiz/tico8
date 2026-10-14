@@ -14,6 +14,7 @@ describe('resolveConfig', () => {
       actions: {},
       extras: false,
       mouse: false,
+      save: {},
     })
     expect(resolveConfig()).toEqual(resolveConfig({}))
   })

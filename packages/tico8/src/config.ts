@@ -16,6 +16,9 @@ import {
 } from './input/types.ts'
 
 import { PICO8, PICO8_NAMES, type Rgb, readPalette } from './palette.ts'
+import { readSave } from './save/check.ts'
+import { createSave } from './save/save.ts'
+import { projectStore } from './save/storage.ts'
 import type { SaveData, SaveOf } from './save/types.ts'
 
 /** The project file a config is read from. */
@@ -131,6 +134,8 @@ export interface Settings {
   actions: Bindings
   extras: boolean
   mouse: boolean
+  /** The save's fields as they are before anything is written. */
+  save: SaveData
 }
 
 /** Thrown by `resolveConfig` for a config that cannot be used. */
@@ -145,24 +150,32 @@ export class ConfigError extends Error {
 const pads = new WeakMap<object, Pad>()
 
 /**
+ * The config each defined config was made from. A defined config's `save`
+ * is the game's save, not the setting, so it is checked as written.
+ */
+const originals = new WeakMap<object, Config>()
+
+/**
  * Wrap a project's config so the editor checks it and offers its settings.
- * It hands back the config with the game's `input` and `COLOR` on it,
- * typed with the actions and colours the config names:
+ * It hands back the config with the game's `input`, `COLOR` and `save` on
+ * it, typed with the actions, colours and save the config names:
  *
  *     const config = defineConfig({
  *       palette: { ink: '#1b1b2f', moss: '#3a5a40' },
  *       actions: { jump: 'a' },
+ *       save: { best: 0 },
  *     })
  *     export default config
- *     export const { input, COLOR } = config
+ *     export const { input, COLOR, save } = config
  */
 export function defineConfig<const C extends Config>(config: C): Defined<C> {
   // A config that cannot be used is refused by `resolveConfig`, with a
   // message. Here it only has to give the game names to read.
   let actions: Bindings = {}
   let colors: Readonly<Record<string, number>> = PICO8_NAMES
+  let defaults: SaveData = {}
   try {
-    ;({ actions, colors } = resolveConfig(config))
+    ;({ actions, colors, save: defaults } = resolveConfig(config))
   } catch {
     const names = Object.keys(Object(config?.palette))
     if (names.length > 0) {
@@ -171,13 +184,19 @@ export function defineConfig<const C extends Config>(config: C): Defined<C> {
     for (const name of Object.keys(Object(config?.actions))) {
       if (!RESERVED.includes(name)) actions = { ...actions, [name]: [] }
     }
+    try {
+      defaults = readSave(config?.save)
+    } catch {}
   }
   const pad = createPad({ actions })
-  const defined = Object.defineProperties(
-    { ...config },
-    { input: { value: pad.input }, COLOR: { value: colors } },
-  ) as unknown as Defined<C>
+  const { save: _, ...settings }: Config = Object(config)
+  const defined = Object.defineProperties(settings, {
+    input: { value: pad.input },
+    COLOR: { value: colors },
+    save: { value: createSave(defaults, projectStore) },
+  }) as unknown as Defined<C>
   pads.set(defined, pad)
+  originals.set(defined, config)
   return defined
 }
 
@@ -194,6 +213,7 @@ const settingNames = [
   'actions',
   'extras',
   'mouse',
+  'save',
 ]
 
 /**
@@ -204,7 +224,7 @@ export function resolveConfig(given: unknown = {}): Settings {
   if (typeof given !== 'object' || given === null || Array.isArray(given)) {
     throw new ConfigError('the default export must be a config object')
   }
-  const config: Config = given
+  const config: Config = originals.get(given) ?? given
   for (const key of Object.keys(config)) {
     if (!settingNames.includes(key)) {
       throw new ConfigError(
@@ -250,6 +270,13 @@ export function resolveConfig(given: unknown = {}): Settings {
     }
   }
 
+  let save: SaveData
+  try {
+    save = readSave(config.save)
+  } catch (error) {
+    throw new ConfigError((error as Error).message)
+  }
+
   return {
     ...SCREENS[screen],
     rate,
@@ -259,6 +286,7 @@ export function resolveConfig(given: unknown = {}): Settings {
     actions,
     extras,
     mouse,
+    save,
   }
 }
 
