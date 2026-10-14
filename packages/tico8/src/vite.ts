@@ -1,9 +1,11 @@
-import { existsSync } from 'node:fs'
+import { existsSync, realpathSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Plugin } from 'vite'
+import { fileURLToPath } from 'node:url'
+import { normalizePath, type Plugin } from 'vite'
 import { PAGE_STYLE } from './export/page.ts'
 import { assetsHmr } from './vite/assets-hmr.ts'
 import { config } from './vite/config.ts'
+import { files } from './vite/files.ts'
 import { maps } from './vite/maps.ts'
 import { project } from './vite/project.ts'
 import { sounds } from './vite/sounds.ts'
@@ -25,8 +27,20 @@ function findMain(root: string): string | undefined {
  */
 const entryId = '/@tico8/entry.js'
 
-/** The page a game runs in. The game mounts into `document.body`. */
-const page = `<!doctype html>
+/** The address of the page a game runs in, framed by the dev page. */
+const gameUrl = '/@tico8/game'
+
+/** The dev page's module: the tabs and the editors. */
+const shellId = '/@tico8/shell.js'
+
+/** The editors' code in the package, as Vite names a file. */
+const shellMain = normalizePath(
+  realpathSync(fileURLToPath(new URL('./editor/main.tsx', import.meta.url))),
+)
+
+/** A page that runs one module, in the style the export shares. */
+function pageWith(script: string): string {
+  return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -37,10 +51,20 @@ ${PAGE_STYLE}
     </style>
   </head>
   <body>
-    <script type="module" src="${entryId}"></script>
+    <script type="module" src="${script}"></script>
   </body>
 </html>
 `
+}
+
+/** The pages the dev server serves, by address. */
+const pages: Record<string, string> = {
+  '/': pageWith(shellId),
+  '/index.html': pageWith(shellId),
+  // The game in a page of its own, so keys pressed in an editor never reach
+  // it. The game mounts into `document.body`.
+  [gameUrl]: pageWith(entryId),
+}
 
 /**
  * Starts the game, and restarts it when its code changes: an edit to the
@@ -62,7 +86,16 @@ if (import.meta.hot) {
 
 /** Everything `tico8 dev` adds to Vite for a project folder. */
 export function tico8(): Plugin[] {
-  return [core(), config(), project(), sprites(), maps(), sounds(), assetsHmr()]
+  return [
+    core(),
+    config(),
+    project(),
+    sprites(),
+    maps(),
+    sounds(),
+    assetsHmr(),
+    files(),
+  ]
 }
 
 function core(): Plugin {
@@ -102,17 +135,19 @@ function core(): Plugin {
     },
 
     resolveId(id) {
-      if (id === entryId) return entryId
+      if (id === entryId || id === shellId) return id
     },
 
     load(id) {
       if (id === entryId) return entry(main)
+      if (id === shellId) return `import ${JSON.stringify(shellMain)}\n`
     },
 
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
-        const path = req.url?.split('?')[0]
-        if (path !== '/' && path !== '/index.html') return next()
+        const path = req.url?.split('?')[0] ?? ''
+        const page = pages[path]
+        if (page === undefined) return next()
         try {
           const html = await server.transformIndexHtml(req.url ?? '/', page)
           res.statusCode = 200

@@ -144,8 +144,10 @@ export const createNav: CreateNav = (
       )
       if (focused === -1) {
         // Focus is elsewhere: take it, and let only Ⓑ act this update, so
-        // nothing is chosen before it is seen.
-        elements[0]?.focus()
+        // nothing is chosen before it is seen. Not from outside the page,
+        // though: the dev page frames the game, and focusing in the frame
+        // would pull the keys away from an editor beside it.
+        if (top.element.ownerDocument.hasFocus()) elements[0]?.focus()
       } else {
         let index = focused
         for (const direction of DIRECTIONS) {

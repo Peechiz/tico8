@@ -28,7 +28,9 @@ export function Menu({ onBack, children, ...props }: MenuProps) {
         return onBack && (() => onBack())
       },
     })
-    if (!div.contains(div.ownerDocument.activeElement)) {
+    // Only within a page that has focus; the nav takes it later otherwise.
+    const doc = div.ownerDocument
+    if (doc.hasFocus() && !div.contains(doc.activeElement)) {
       div.querySelector<HTMLElement>(BUTTON)?.focus()
     }
     // The pointer over a button focuses it. This cannot tell whether this is

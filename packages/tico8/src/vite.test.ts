@@ -62,3 +62,32 @@ it('JSX compiles through tico8/ui and preact is prebundled', () => {
   expect(result.optimizeDeps?.exclude).toContain('tico8')
   expect(result.optimizeDeps?.include).toContain('tico8 > preact')
 })
+
+/** The page the dev server answers an address with, or undefined. */
+async function pageAt(url: string): Promise<string | undefined> {
+  const plugin = core()
+  const configResolved = plugin.configResolved as (c: ResolvedConfig) => void
+  configResolved({ root: folder('main.ts') } as ResolvedConfig)
+  let handler: (req: unknown, res: unknown, next: () => void) => Promise<void>
+  const server = {
+    middlewares: { use: (h: typeof handler) => (handler = h) },
+    transformIndexHtml: async (_url: string, html: string) => html,
+  }
+  ;(plugin.configureServer as (s: unknown) => void)(server)
+  let body: string | undefined
+  const res = { setHeader() {}, end: (text: string) => (body = text) }
+  await handler!({ url }, res, () => {})
+  return body
+}
+
+it('the dev page holds the tabs and the game page the game', async () => {
+  expect(await pageAt('/')).toContain('src="/@tico8/shell.js"')
+  expect(await pageAt('/?x=1')).toContain('src="/@tico8/shell.js"')
+  expect(await pageAt('/@tico8/game')).toContain('src="/@tico8/entry.js"')
+  expect(await pageAt('/main.ts')).toBeUndefined()
+})
+
+it('the shell module loads the editors from the package', () => {
+  const load = core().load as (id: string) => string
+  expect(load('/@tico8/shell.js')).toMatch(/^import ".*\/editor\/main\.tsx"\n$/)
+})

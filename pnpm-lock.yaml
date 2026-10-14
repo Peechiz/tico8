@@ -114,6 +114,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/tico8
 
+  examples/14-sprites:
+    dependencies:
+      tico8:
+        specifier: workspace:*
+        version: link:../../packages/tico8
+
   packages/tico8:
     dependencies:
       preact:
