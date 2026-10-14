@@ -521,9 +521,44 @@ export function ui() {
 
 ## Sound
 
-- Ordinary audio files (wav, ogg) in a folder, played by name. Made in any
-  external program.
+- Ordinary audio files (wav, ogg, mp3) in a `sounds` folder, played by
+  name. Made in any external program. mp3 is there because older Safari
+  cannot play ogg, and most free sound packs come as mp3.
 - No built-in sound or music editor.
+- **Sounds are typed references generated from the folder,** as sheets are:
+  `import { swing, theme } from './sounds'`. Two files that would take the
+  same name (`jump.wav` and `jump.ogg`) are both left out, with a warning.
+- **Music is a sound that loops.** There is one kind of thing: `swing.play()`,
+  `theme.play({ loop: true })`, `theme.stop()`. Switching tracks is stopping
+  one and playing the other.
+- **Effects overlap:** each `play` of a one-off sound is a new copy, layered
+  on any still sounding. **A loop has one copy:** playing a loop that is
+  already going does nothing, so a game can play its music from `init`
+  without checking. `stop` stops every copy.
+- **Volume is per sound,** from 0 to 1: `theme.volume = 0.4` sets it for
+  every copy, now and later, and `swing.play({ volume: 0.5 })` scales one
+  play. A master volume sits over everything for the pause menu; games
+  cannot reach it.
+- `theme.playing` says whether any copy is sounding, or a loop is waiting
+  for the first key press.
+- **Before the player's first key press, click or tap,** browsers play no
+  sound. Effects played before then are dropped; a loop played before then
+  starts on that press, so title music needs no extra code.
+- **Saving code restarts the game, not the music.** On that restart every
+  effect stops, and a loop the new game plays again from `init` or its
+  first update carries on where it was. A loop it no longer plays falls
+  silent. Reloading the page starts everything from nothing.
+- Saving a sound file swaps it live: new plays use the new file, and a loop
+  under way starts again with it.
+
+```ts
+import { swing, theme } from './sounds'
+
+theme.volume = 0.4
+theme.play({ loop: true })            // init: starts on the first key press
+
+if (input.a.pressed) swing.play()     // update
+```
 
 ## Saving
 
