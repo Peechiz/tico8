@@ -19,7 +19,7 @@ Slices whose "needs" are all `done` can run in parallel.
 | 10 | [Save](10-save.md) | 02 | small | done | A high score that survives a page reload |
 | 11 | [UI layer](11-ui.md) | 04, 06 | medium | done | A JSX HUD and a menu driven by the pad |
 | 12 | [Pause menu](12-pause-menu.md) | 09, 11 | medium | done | Built-in pause with volume and a controls screen |
-| 13 | [Export](13-export.md) | 02 | medium | todo | One HTML file that plays the demo on double-click |
+| 13 | [Export](13-export.md) | 02 | medium | done | One HTML file that plays the demo on double-click |
 | 14 | [Sprite editor](14-sprite-editor.md) | 02 | large | todo | A Sprites tab that paints into the PNG the game is showing |
 | 15 | [Map editor](15-map-editor.md) | 07, 14 | large | todo | A Map tab that edits the room the game is showing |
 | 16 | [Package build](16-package-build.md) | 05 | small | todo | The demo run from an installed copy of the package, not the workspace source |

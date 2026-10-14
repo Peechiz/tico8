@@ -719,6 +719,18 @@ export function pause() {
   sprites, maps and sound packed in. Double-click to play, host anywhere, or
   upload to itch.io.
 - Export is play-only. Source is shared as a normal folder or repo.
+- **It writes `dist/<project>.html`**, named like the save's key (the
+  `package.json` name, else the folder's), and prints its size. `--out
+  <file>` writes elsewhere.
+- **Assets go in as data URLs.** Each sheet and sound file becomes a
+  base64 `data:` URL in the code, so the loaders fetch them as they do in
+  dev. Maps and flags are already part of the code.
+- **It type-checks first** and stops on an error; `--no-check` skips the
+  check. TypeScript comes with tico8. A `tsconfig.json` in the project
+  folder is used when there is one, tico8's own settings otherwise (one
+  in a folder above is ignored).
+- **The page holds one module** inline, with the CSS and the UI font, so
+  it runs from `file:`; the dev page and the exported one share a style.
 
 ## Name
 
