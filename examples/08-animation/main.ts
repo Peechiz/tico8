@@ -10,7 +10,6 @@ import {
   vec,
 } from 'tico8'
 import { room1 } from './maps'
-import { swing, theme } from './sounds'
 import { player, tiles } from './sprites'
 
 // A sprite knows where it is and how big, so it is also the box walls stop.
@@ -33,10 +32,6 @@ const hud = rect({
 })
 
 export function init() {
-  // The theme loops; the browser starts it on the first key press.
-  theme.volume = 0.4
-  theme.play({ loop: true })
-
   // The markers layer is never drawn: its tiles only say where things go.
   const [start] = room1.markers.tiles('spawn')
   if (start) {
@@ -63,8 +58,6 @@ export function update() {
   const moving = dir.x !== 0 || dir.y !== 0
   if (input.a.pressed) {
     attacking = true
-    // Effects overlap: mashing A layers swings instead of cutting one off.
-    swing.play()
     hero.play(attack, { restart: true })
   } else if (attacking) {
     hero.play(attack)
