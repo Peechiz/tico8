@@ -33,18 +33,18 @@ packages/tico8/src/maps/types.ts    what a game reads, and the two files' shapes
 packages/tico8/src/maps/file.ts     a map file read into cells, and written back
 packages/tico8/src/maps/flags.ts    a flags file read into sets of tiles
 packages/tico8/src/maps/layers.ts   a map and its layers over cells, a sheet and a screen
-packages/tico8/src/assets/maps.ts   the console's maps by address, live swap, restore
+packages/tico8/src/assets/maps.ts   the console's maps by name, live swap, restore
 packages/tico8/src/vite/maps.ts     the generated maps.ts
 packages/tico8/src/vite/assets-hmr.ts  tells the page a map or flags file changed
 ```
 
 How a map reaches a game: the dev tool writes `maps.ts`, which imports each
 map's JSON and its tileset's flags JSON and calls `map` from `tico8/assets`
-with them and the tileset's sheet. The JSON is there when the module runs,
-so a map is whole before `init`; only the tileset's picture loads. When
-either file is saved the dev tool stops Vite restarting the game and tells
-the page, which fetches the file again and swaps it into the map the game
-already holds.
+with them, the map's name and the tileset's sheet. The JSON is there when
+the module runs, so a map is whole before `init`; only the tileset's
+picture loads. When either file is saved the dev tool stops Vite
+restarting the game and sends the page the file's new contents, which are
+swapped into the map the game already holds.
 
 The generated file, exactly:
 
@@ -55,11 +55,10 @@ import room1_map from './maps/room1.json'
 import { tiles } from './sprites'
 import tiles_flags from './sprites/tiles.flags.json'
 
-export const room1 = map({
-  url: '/maps/room1.json',
+export const room1 = map('room1', {
   data: room1_map,
   tiles,
-  flags: { url: '/sprites/tiles.flags.json', data: tiles_flags },
+  flags: tiles_flags,
 })
 ```
 
@@ -168,7 +167,7 @@ export const room1 = map({
   tile the game took out would otherwise stay gone. Saving the map file
   also discards what `set` changed.
 - **A map is whole before `init` with nothing to wait for:** its JSON is
-  imported, not fetched. Only a live swap fetches.
+  imported, not fetched.
 - **`maps.ts` is written only for a project with a `maps` folder,** so the
   earlier examples get none.
 - **The map and flags files are kept from Biome,** which would join a
@@ -243,6 +242,18 @@ export const room1 = map({
   no, and collision response is the game's own code until there is an
   opinion to build one on. Small pieces that compose are preferred here to
   a helper with behaviour baked in.
+
+- **A map is known by its name, not its files' addresses.** Changed after
+  the slice closed: the generated file had each address twice, once to
+  import and once for the page to fetch again. Now the dev tool reads a
+  saved map or flags file and sends its contents, with the map's name or
+  the tileset's, so the page fetches nothing and `maps.ts` says
+  `map('room1', { data, tiles, flags })`. The name is still written twice,
+  as the export and as a string, since a function cannot see the name of a
+  variable. This replaces the addresses, `reload`, `reloadFlags`, the
+  second try and the cache-busting described above; a half-saved file is
+  now read a second time by the dev tool, and one that is still not JSON is
+  warned about in the terminal.
 
 ## Not checked
 
