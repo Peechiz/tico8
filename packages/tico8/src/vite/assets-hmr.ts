@@ -1,8 +1,19 @@
 import { readFile } from 'node:fs/promises'
 import type { Plugin } from 'vite'
-import type { FlagsChanged, MapChanged, SheetChanged } from '../assets/event.ts'
-import { FLAGS_CHANGED, MAP_CHANGED, SHEET_CHANGED } from '../assets/event.ts'
+import type {
+  FlagsChanged,
+  MapChanged,
+  SheetChanged,
+  SoundChanged,
+} from '../assets/event.ts'
+import {
+  FLAGS_CHANGED,
+  MAP_CHANGED,
+  SHEET_CHANGED,
+  SOUND_CHANGED,
+} from '../assets/event.ts'
 import { FLAGS_SUFFIX, MAPS_DIR } from './maps.ts'
+import { SOUND_TYPES, SOUNDS_DIR } from './sounds.ts'
 import { camelCase, SPRITES_DIR } from './sprites.ts'
 
 /** A file name spelled as the generated files spell it in an address. */
@@ -70,7 +81,11 @@ export function sheetUrl(root: string, file: string): string | undefined {
  * sounds folder. Spelled as the generated `sounds.ts` spells it.
  */
 export function soundUrl(root: string, file: string): string | undefined {
-  throw new Error(`not built yet: ${root} ${file}`)
+  const name = directChild(root, SOUNDS_DIR, file)
+  if (name === undefined) return undefined
+  const lower = name.toLowerCase()
+  if (!SOUND_TYPES.some((type) => lower.endsWith(type))) return undefined
+  return `/${SOUNDS_DIR}/${encodeName(name)}`
 }
 
 /** Parse JSON text, or return undefined if it is not valid. */
@@ -83,8 +98,8 @@ function parseJson(text: string): { value: unknown } | undefined {
 }
 
 /**
- * Tells the running game when an asset, map or flags file changes, so it swaps
- * live and the game is not restarted. A map or flags file is sent as parsed
+ * Tells the running game when a sheet, sound, map or flags file changes, so it
+ * swaps live and the game is not restarted. A map or flags file is sent as parsed
  * contents. If it does not parse, it may be half-written by an editor that
  * saves in two steps, so it is read once more after `retryDelay` ms.
  */
@@ -102,6 +117,14 @@ export function assetsHmr(retryDelay = 100): Plugin {
         // A file some editors replace rather than rewrite arrives as created.
         // Leave that to the plugin that writes sprites.ts; for a plain change
         // the page has all it needs, so nothing is reloaded or re-run.
+        if (type === 'update') return []
+        return
+      }
+      const sound = soundUrl(root, file)
+      if (sound !== undefined) {
+        const data: SoundChanged = { url: sound }
+        this.environment.hot.send(SOUND_CHANGED, data)
+        // Same as a sheet: only a plain change is swapped in live.
         if (type === 'update') return []
         return
       }

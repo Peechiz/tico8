@@ -1,7 +1,18 @@
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it, vi } from 'vitest'
-import { FLAGS_CHANGED, MAP_CHANGED, SHEET_CHANGED } from '../assets/event.ts'
-import { assetsHmr, flagsTileset, mapName, sheetUrl } from './assets-hmr.ts'
+import {
+  FLAGS_CHANGED,
+  MAP_CHANGED,
+  SHEET_CHANGED,
+  SOUND_CHANGED,
+} from '../assets/event.ts'
+import {
+  assetsHmr,
+  flagsTileset,
+  mapName,
+  sheetUrl,
+  soundUrl,
+} from './assets-hmr.ts'
 import { parseSheetFile, renderSprites } from './sprites.ts'
 
 vi.mock('node:fs/promises', () => ({ readFile: vi.fn() }))
@@ -29,6 +40,32 @@ describe('sheetUrl', () => {
     expect(sheetUrl('/game', '/game/art/player.png')).toBeUndefined()
     expect(sheetUrl('/game', '/other/sprites/player.png')).toBeUndefined()
     expect(sheetUrl('/game', '/game2/sprites/player.png')).toBeUndefined()
+  })
+})
+
+describe('soundUrl', () => {
+  it('gives the address of a wav, ogg or mp3 in the sounds folder', () => {
+    expect(soundUrl('/game', '/game/sounds/hit.wav')).toBe('/sounds/hit.wav')
+    expect(soundUrl('/game/', '/game/sounds/theme.OGG')).toBe(
+      '/sounds/theme.OGG',
+    )
+    expect(soundUrl('/game', '/game/sounds/a.mp3')).toBe('/sounds/a.mp3')
+  })
+
+  it('spells the address as sheets are spelled', () => {
+    expect(soundUrl('/game', "/game/sounds/big boss's#1.wav")).toBe(
+      '/sounds/big%20boss%27s%231.wav',
+    )
+  })
+
+  it('ignores every other file', () => {
+    expect(soundUrl('/game', '/game/sounds/sub/hit.wav')).toBeUndefined()
+    expect(soundUrl('/game', '/game/sounds/.hit.wav')).toBeUndefined()
+    expect(soundUrl('/game', '/game/sounds/notes.txt')).toBeUndefined()
+    expect(soundUrl('/game', '/game/sounds/hit.flac')).toBeUndefined()
+    expect(soundUrl('/game', '/game/sprites/hit.wav')).toBeUndefined()
+    expect(soundUrl('/game', '/other/sounds/hit.wav')).toBeUndefined()
+    expect(soundUrl('/game', '/game2/sounds/hit.wav')).toBeUndefined()
   })
 })
 
@@ -108,6 +145,19 @@ describe('assetsHmr', () => {
     expect(result).toEqual([])
   })
 
+  it('tells the page and stops Vite when a sound changes', async () => {
+    const { send, result } = await change('update', '/game/sounds/hit.wav')
+    expect(send).toHaveBeenCalledWith(SOUND_CHANGED, { url: '/sounds/hit.wav' })
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(result).toEqual([])
+  })
+
+  it('tells the page about a replaced sound but leaves the rest to others', async () => {
+    const { send, result } = await change('create', '/game/sounds/hit.wav')
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(result).toBeUndefined()
+  })
+
   it('sends a changed map with its contents and stops Vite', async () => {
     const { send, result } = await change(
       'update',
@@ -181,6 +231,8 @@ describe('assetsHmr', () => {
       await change('delete', '/game/sprites/player.png'),
       await change('update', '/game/main.ts'),
       await change('update', '/game/sprites/player.png', '', 'ssr'),
+      await change('delete', '/game/sounds/hit.wav'),
+      await change('update', '/game/sounds/hit.wav', '', 'ssr'),
       await change('delete', '/game/maps/room1.json'),
       await change('update', '/game/maps/room1.json', '{}', 'ssr'),
       await change('delete', '/game/sprites/t.flags.json'),
