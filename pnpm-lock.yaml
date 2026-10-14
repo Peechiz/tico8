@@ -108,11 +108,20 @@ importers:
         specifier: workspace:*
         version: link:../../packages/tico8
 
+  examples/13-export:
+    dependencies:
+      tico8:
+        specifier: workspace:*
+        version: link:../../packages/tico8
+
   packages/tico8:
     dependencies:
       preact:
         specifier: ^11.0.1
         version: 11.0.1
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
       vite:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)
