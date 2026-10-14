@@ -33,6 +33,8 @@ export interface SheetsOptions {
   retryDelay?: number
   /** Also say how many pixels of a sheet are outside the palette. */
   warnOffPalette?: boolean
+  /** Updates a second, for the sprites' animations. Defaults to 30. */
+  rate?: number
 }
 
 export interface Sheets {
@@ -82,6 +84,7 @@ export function createSheets(options: SheetsOptions): Sheets {
     load,
     retryDelay = RETRY_DELAY,
     warnOffPalette = false,
+    rate = 30,
   } = options
 
   interface Entry {
@@ -133,7 +136,7 @@ export function createSheets(options: SheetsOptions): Sheets {
   return {
     sheet(url, cellWidth, cellHeight) {
       const entry: Entry = {
-        sheet: createSheet(screen, cellWidth, cellHeight),
+        sheet: createSheet(screen, cellWidth, cellHeight, rate),
         turn: 0,
         loaded: false,
       }
@@ -172,6 +175,7 @@ const sheets = createSheets({
   paletteSize: () => gameColors.size,
   load: loadPixels,
   warnOffPalette: settings.warnOffPalette,
+  rate: settings.rate,
 })
 
 /**

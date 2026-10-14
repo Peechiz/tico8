@@ -1,6 +1,6 @@
 import { restoreMaps } from './assets/maps.ts'
 import { ready } from './assets/sheets.ts'
-import { display, pad, palette, settings } from './console.ts'
+import { display, pad, palette, settings, time } from './console.ts'
 import { mount } from './host.ts'
 import { attachGamepads } from './input/gamepad.ts'
 import { attachKeyboard } from './input/keyboard.ts'
@@ -22,6 +22,8 @@ export function run(game: Game): () => void {
     display.clear()
     // A game that changed its maps starts again with them as saved.
     restoreMaps()
+    // Game time starts again with the game.
+    time.reset()
     pad.releaseAll()
     const host = mount(document.body, display, palette)
     // Every device feeds the one pad, all the time.
@@ -33,6 +35,7 @@ export function run(game: Game): () => void {
     const loop = createLoop(game, {
       rate: settings.rate,
       onUpdate: pad.sample,
+      afterUpdate: time.step,
       beforeDraw: display.beginFrame,
       onDraw: host.present,
     })
