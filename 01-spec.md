@@ -738,6 +738,21 @@ export function pause() {
   lift; its see-through pixels leave what is under them.
 - **Focus:** the game's menus take focus only while its page has it, so the
   game never pulls keys away from an editor beside it.
+- **Look:** the editors are drawn in tico8's own sixteen colours and its
+  font, whatever palette the project paints with, so the editors and the
+  console read as one machine. Sentences use the system face.
+- **Feedback:** the pixel under the pointer is outlined in the brush colour,
+  a status line shows x, y and the frame number, the current colour shows
+  large with its index, and "saving" and "saved" sit by the sheet tabs.
+- **Layout:** sheet tabs on top, a tool rail on the left, the canvas in the
+  middle, colour and sheet view on the right, frames and status below. Narrow
+  (beside the game) the right column folds under the canvas. The split's
+  divider can be dragged.
+- **Keys:** arrows step the zoomed cells, 1, 2 and 4 zoom, R twice for a
+  filled rectangle, ? lists every shortcut; right-click or Alt-click picks a
+  colour. A selection shows Flip, Rotate and Done above it.
+- **Sheets:** New and Resize are dialogs; New shows the file and size it
+  will write, Resize how many cells with art a shrink cuts.
 
 ## Export and sharing
 

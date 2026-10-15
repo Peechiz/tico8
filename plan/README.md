@@ -27,6 +27,7 @@ Slices whose "needs" are all `done` can run in parallel.
 | 18 | [CLI info commands](18-cli-info.md) | 05 | small | todo | `tico8 palette` prints the palette with colour swatches in the terminal |
 | 19 | [Input tester](19-input-tester.md) | 12 | small | todo | The controls screen lights up each row while its button is held |
 | 20 | [Symbol codes](20-symbol-codes.md) | 04, 11 | small | todo | `:a:` and `:heart:` in a string drawn as Ⓐ and ♥ |
+| 21 | [Sprite editor look](21-sprite-editor-look.md) | 14 | large | done | The sprite editor in the console's own colours and font, usable beside the game |
 
 ## Lanes after slice 02
 
@@ -37,7 +38,7 @@ Slices whose "needs" are all `done` can run in parallel.
 - UI: 11, 12, 19, 20
 - Shipping: 13, 16, 17
 - Tooling: 18
-- Editors: 14, 15
+- Editors: 14, 15, 21
 
 Export (13) packs every asset type that exists when it is built. A slice that
 adds an asset type after that also adds it to the export.
