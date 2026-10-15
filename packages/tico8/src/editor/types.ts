@@ -111,6 +111,13 @@ export type ActionName =
   | 'rotate'
   | 'clear'
   | 'deselect'
+  | 'cellLeft'
+  | 'cellRight'
+  | 'cellUp'
+  | 'cellDown'
+  | 'zoom1'
+  | 'zoom2'
+  | 'zoom4'
 
 /**
  * The keyboard. A key is written as `KeyboardEvent.key` in lower case,
@@ -136,6 +143,13 @@ export const SHORTCUTS: Readonly<Record<string, ToolName | ActionName>> = {
   delete: 'clear',
   backspace: 'clear',
   escape: 'deselect',
+  arrowleft: 'cellLeft',
+  arrowright: 'cellRight',
+  arrowup: 'cellUp',
+  arrowdown: 'cellDown',
+  '1': 'zoom1',
+  '2': 'zoom2',
+  '4': 'zoom4',
 }
 
 /** How many cells wide and tall the painting area shows. */
@@ -166,6 +180,8 @@ export interface EditorState {
   drag: Drag | undefined
   canUndo: boolean
   canRedo: boolean
+  /** Whether a write is under way or waiting; false once the queue is empty. */
+  saving: boolean
   /** The last thing that went wrong, such as a failed write. */
   error: string | undefined
   /** Counts up on every change to the pixels, for canvases to redraw. */
@@ -196,6 +212,8 @@ export interface Editor {
   pointerDown(at: Vec): void
   pointerMove(at: Vec): void
   pointerUp(at: Vec): void
+  /** Take the colour of the pixel at `at`, leaving the colour be on see-through. */
+  pickAt(at: Vec): void
   /** Do one of the actions. */
   act(action: ActionName): void
   /**
@@ -215,6 +233,33 @@ export interface Editor {
 export interface EditorProps {
   editor: Editor
   state: EditorState
+}
+
+/** The pixel under the pointer in the painting area. */
+export interface Hover {
+  at: Vec
+  /** The frame number of the cell it is in, as game code counts them. */
+  frame: number
+}
+
+export interface CanvasProps extends EditorProps {
+  /** Hear where the pointer is; undefined once it leaves. */
+  onHover?: (hover: Hover | undefined) => void
+}
+
+export interface StatusProps extends EditorProps {
+  hover: Hover | undefined
+  /** Open the shortcut sheet. */
+  onHelp: () => void
+}
+
+/** A dialog over the editor. */
+export interface DialogProps extends EditorProps {
+  onClose: () => void
+}
+
+export interface ShortcutSheetProps {
+  onClose: () => void
 }
 
 /** A tab beside the game. */

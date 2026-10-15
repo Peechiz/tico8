@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils'
 import { expect, it } from 'vitest'
 import { TRANSPARENT } from '../sprites.ts'
 import { Canvas, canvasArea, canvasScale } from './canvas.tsx'
-import type { Editor, EditorState, SheetDoc, Vec } from './types.ts'
+import type { Editor, EditorState, Hover, SheetDoc, Vec } from './types.ts'
 
 function fakeDoc(columns = 4, rows = 2, cell = 8): SheetDoc {
   const width = columns * cell
@@ -39,6 +39,7 @@ function fakeState(over: Partial<EditorState> = {}): EditorState {
     drag: undefined,
     canUndo: false,
     canRedo: false,
+    saving: false,
     error: undefined,
     version: 0,
     ...over,
@@ -60,10 +61,16 @@ function fakeEditor() {
   return { editor, calls }
 }
 
-function mount(state: EditorState, editor: Editor) {
+function mount(
+  state: EditorState,
+  editor: Editor,
+  onHover?: (hover: Hover | undefined) => void,
+) {
   const root = document.createElement('div')
   document.body.append(root)
-  act(() => render(<Canvas editor={editor} state={state} />, root))
+  act(() =>
+    render(<Canvas editor={editor} state={state} onHover={onHover} />, root),
+  )
   return root
 }
 
@@ -72,7 +79,12 @@ function placeAt(el: Element, left: number, top: number) {
     ({ left, top, x: left, y: top, width: 0, height: 0 }) as DOMRect
 }
 
-function pointer(el: Element, type: string, at: Vec) {
+function pointer(
+  el: Element,
+  type: string,
+  at: Vec,
+  over: PointerEventInit = {},
+) {
   act(() => {
     el.dispatchEvent(
       new PointerEvent(type, {
@@ -80,15 +92,16 @@ function pointer(el: Element, type: string, at: Vec) {
         clientY: at.y,
         button: 0,
         bubbles: true,
+        ...over,
       }),
     )
   })
 }
 
-it('asks for a sheet when none is open', () => {
+it('shows nothing when no sheet is open', () => {
   const { editor } = fakeEditor()
   const root = mount(fakeState({ doc: undefined }), editor)
-  expect(root.textContent).toBe('Pick or make a sheet')
+  expect(root.innerHTML).toBe('')
 })
 
 it('sizes the canvas to the zoomed cells at a whole scale', () => {
@@ -193,4 +206,77 @@ it('paints the lifted pixels and the drag over the sheet', () => {
   } finally {
     HTMLCanvasElement.prototype.getContext = original
   }
+})
+
+it('reports the pixel and frame under the pointer, and its leaving', () => {
+  const { editor } = fakeEditor()
+  const hovers: (Hover | undefined)[] = []
+  const state = fakeState({ cell: { x: 1, y: 1 } })
+  const scale = canvasScale(state.doc!, 1)
+  const root = mount(state, editor, (hover) => hovers.push(hover))
+  const canvas = root.querySelector('canvas')!
+  placeAt(canvas, 0, 0)
+
+  pointer(canvas, 'pointermove', { x: 3 * scale + 1, y: 5 * scale + 1 })
+  pointer(canvas, 'pointerleave', { x: 0, y: 0 }, { bubbles: false })
+
+  // Cell (1, 1) of a sheet four cells wide is frame 5.
+  expect(hovers).toEqual([{ at: { x: 11, y: 13 }, frame: 5 }, undefined])
+})
+
+it('picks a colour on a right-click or Alt-click, with any tool', () => {
+  const { editor, calls } = fakeEditor()
+  const scale = canvasScale(fakeDoc(), 1)
+  const root = mount(fakeState({ tool: 'rect' }), editor)
+  const canvas = root.querySelector('canvas')!
+  placeAt(canvas, 0, 0)
+
+  pointer(canvas, 'pointerdown', { x: 2 * scale, y: scale }, { button: 2 })
+  pointer(canvas, 'pointerup', { x: 2 * scale, y: scale }, { button: 2 })
+  pointer(canvas, 'pointerdown', { x: 0, y: 0 }, { altKey: true })
+  pointer(canvas, 'pointerup', { x: 0, y: 0 }, { altKey: true })
+
+  expect(calls).toEqual([
+    ['pickAt', { x: 2, y: 1 }],
+    ['pickAt', { x: 0, y: 0 }],
+  ])
+  const menu = new MouseEvent('contextmenu', {
+    bubbles: true,
+    cancelable: true,
+  })
+  canvas.dispatchEvent(menu)
+  expect(menu.defaultPrevented).toBe(true)
+})
+
+it('shows the selection bar only with a selection', () => {
+  const { editor, calls } = fakeEditor()
+  const root = mount(fakeState(), editor)
+  expect(root.querySelector('.bar')).toBeNull()
+  act(() => render(null, root))
+
+  const selected = mount(
+    fakeState({ selection: { rect: { x: 2, y: 2, width: 3, height: 2 } } }),
+    editor,
+  )
+  const buttons = [...selected.querySelectorAll('.bar button')]
+  expect(buttons.map((b) => b.textContent)).toEqual([
+    'Flip H',
+    'Flip V',
+    'Rotate',
+    'Done',
+  ])
+  for (const button of buttons) act(() => (button as HTMLButtonElement).click())
+  expect(calls).toEqual([
+    ['act', 'flipX'],
+    ['act', 'flipY'],
+    ['act', 'rotate'],
+    ['act', 'deselect'],
+  ])
+  act(() => render(null, selected))
+})
+
+it('fits a sheet smaller than the zoom to what it shows', () => {
+  const single = fakeDoc(1, 1, 16)
+  expect(canvasScale(single, 2, 512)).toBe(canvasScale(single, 1, 512))
+  expect(canvasScale(fakeDoc(4, 2), 4, 512)).toBe(16)
 })

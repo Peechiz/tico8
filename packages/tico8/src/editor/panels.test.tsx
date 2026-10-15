@@ -2,15 +2,24 @@
 import { type ComponentChildren, render } from 'preact'
 import { act } from 'preact/test-utils'
 import { afterEach, expect, it } from 'vitest'
-import { PalettePanel, SheetPicker, Toolbar } from './panels.tsx'
+import {
+  PalettePanel,
+  ShortcutSheet,
+  StatusLine,
+  ToolRail,
+  ZoomPicker,
+} from './panels.tsx'
+import { keyLabel } from './theme.ts'
 import type {
   Editor,
   EditorProps,
   EditorState,
+  Hover,
   NewSheet,
   SheetDoc,
   SheetInfo,
 } from './types.ts'
+import { SHORTCUTS } from './types.ts'
 
 type Call = [name: string, ...args: unknown[]]
 
@@ -35,6 +44,7 @@ function fakeEditor(state: EditorState, refuse?: string) {
     pointerDown: record('pointerDown'),
     pointerMove: record('pointerMove'),
     pointerUp: record('pointerUp'),
+    pickAt: record('pickAt'),
     act: record('act'),
     key: () => false,
     newSheet: async (sheet: NewSheet) => {
@@ -89,6 +99,7 @@ function makeState(over: Partial<EditorState> = {}): EditorState {
     drag: undefined,
     canUndo: true,
     canRedo: false,
+    saving: false,
     error: undefined,
     version: 0,
     ...over,
@@ -125,59 +136,104 @@ function setup(
   return { root, calls, $, click }
 }
 
-it('marks the current tool and shows each tool’s shortcut', () => {
-  const { $, root } = setup(Toolbar, { tool: 'fill' })
-  const pressed = [...root.querySelectorAll('[data-tool]')].filter(
-    (b) => b.getAttribute('aria-pressed') === 'true',
-  )
-  expect(pressed.map((b) => b.getAttribute('data-tool'))).toEqual(['fill'])
-  expect($('[data-tool="fill"]').textContent).toContain('F')
-  expect($('[data-tool="pick"]').title).toBe('Pick (I)')
-})
+const tool = (root: HTMLElement, label: string) =>
+  root.querySelector(`[aria-label="${label}"]`) as HTMLButtonElement
 
-it('calls the toolbar’s actions', () => {
-  const { calls, click } = setup(Toolbar)
-  click('[data-tool="rect"]')
-  click('[data-filled]')
-  click('[data-action="undo"]')
-  click('[data-action="flipX"]')
-  click('[data-action="flipY"]')
-  click('[data-action="rotate"]')
-  click('[data-action="paste"]')
-  click('[data-zoom="4"]')
+const pressedLabels = (root: HTMLElement) =>
+  [...root.querySelectorAll('[aria-pressed="true"]')].map((b) =>
+    b.getAttribute('aria-label'),
+  )
+
+it('calls setTool for each tool and setFilled for the rectangles', () => {
+  const { root, calls } = setup(ToolRail)
+  for (const label of ['Pencil', 'Eraser', 'Fill', 'Pick', 'Line', 'Select'])
+    act(() => tool(root, label).click())
+  act(() => tool(root, 'Rectangle').click())
+  act(() => tool(root, 'Filled rectangle').click())
   expect(calls).toEqual([
+    ['setTool', 'pencil'],
+    ['setTool', 'eraser'],
+    ['setTool', 'fill'],
+    ['setTool', 'pick'],
+    ['setTool', 'line'],
+    ['setTool', 'select'],
+    ['setTool', 'rect'],
+    ['setFilled', false],
     ['setTool', 'rect'],
     ['setFilled', true],
-    ['act', 'undo'],
-    ['act', 'flipX'],
-    ['act', 'flipY'],
-    ['act', 'rotate'],
-    ['act', 'paste'],
-    ['setZoom', 4],
   ])
+})
+
+it('presses the current tool, and the rectangle that matches filled', () => {
+  expect(pressedLabels(setup(ToolRail, { tool: 'fill' }).root)).toEqual([
+    'Fill',
+  ])
+  expect(
+    pressedLabels(setup(ToolRail, { tool: 'rect', filled: false }).root),
+  ).toEqual(['Rectangle'])
+  expect(
+    pressedLabels(setup(ToolRail, { tool: 'rect', filled: true }).root),
+  ).toEqual(['Filled rectangle'])
+})
+
+it('names each tool’s key in its title', () => {
+  const { root } = setup(ToolRail)
+  expect(tool(root, 'Pick').title).toMatch(/^Pick \(I\)$/)
+  expect(tool(root, 'Rectangle').title).toBe('Rectangle (R)')
 })
 
 it('disables undo and redo when there is nothing to do', () => {
-  const { $ } = setup(Toolbar, { canUndo: false, canRedo: true })
-  expect(($('[data-action="undo"]') as HTMLButtonElement).disabled).toBe(true)
-  expect(($('[data-action="redo"]') as HTMLButtonElement).disabled).toBe(false)
+  const { $, calls, click } = setup(ToolRail, { canUndo: true, canRedo: false })
+  expect(($('[data-action="undo"]') as HTMLButtonElement).disabled).toBe(false)
+  expect(($('[data-action="redo"]') as HTMLButtonElement).disabled).toBe(true)
+  click('[data-action="undo"]')
+  expect(calls).toEqual([['act', 'undo']])
+  const other = setup(ToolRail, { canUndo: false, canRedo: true })
+  expect((other.$('[data-action="undo"]') as HTMLButtonElement).disabled).toBe(
+    true,
+  )
+  expect((other.$('[data-action="redo"]') as HTMLButtonElement).disabled).toBe(
+    false,
+  )
 })
 
-it('shows the palette, then the sheet’s own colours after a gap', () => {
-  const { root, calls, click } = setup(PalettePanel, { color: 3 })
-  const children = [...(root.firstElementChild?.children ?? [])]
-  expect(children.map((c) => c.getAttribute('data-color'))).toEqual([
+it('shows the current colour and picks a swatch', () => {
+  const { $, root, calls, click } = setup(PalettePanel, { color: 1 })
+  expect($('.t8p-cur').textContent).toBe('colour 1')
+  const palette = [...$('.t8p-pal').children]
+  expect(palette.map((c) => c.getAttribute('data-color'))).toEqual([
     '0',
     '1',
     '2',
-    null,
-    '3',
   ])
   expect(
     root.querySelector('[aria-pressed="true"]')?.getAttribute('data-color'),
-  ).toBe('3')
+  ).toBe('1')
   click('[data-color="2"]')
   expect(calls).toEqual([['setColor', 2]])
+})
+
+it('marks dark swatches so their index shows in light text', () => {
+  const { $ } = setup(PalettePanel)
+  expect($('[data-color="0"]').classList.contains('dark')).toBe(true)
+  expect($('[data-color="1"]').classList.contains('dark')).toBe(false)
+})
+
+it('shows the sheet’s own colours under their label', () => {
+  const { $, calls, click } = setup(PalettePanel, { color: 3 })
+  expect($('.t8p-colors h5').textContent).toBe('from this sheet')
+  const extra = [...$('.t8p-extra').children]
+  expect(extra.map((c) => c.getAttribute('data-color'))).toEqual(['3'])
+  expect(extra[0]?.getAttribute('aria-pressed')).toBe('true')
+  click('[data-color="3"]')
+  expect(calls).toEqual([['setColor', 3]])
+})
+
+it('has no label when the sheet uses only the palette', () => {
+  const { root } = setup(PalettePanel, {
+    doc: { ...doc, paletteSize: doc.colors.length },
+  })
+  expect(root.querySelector('h5')).toBeNull()
 })
 
 it('shows no palette without a sheet', () => {
@@ -185,73 +241,105 @@ it('shows no palette without a sheet', () => {
   expect(root.innerHTML).toBe('')
 })
 
-it('lists the sheets with their cell size and opens one', () => {
-  const { root, calls, click } = setup(SheetPicker)
-  const items = [...root.querySelectorAll('[data-file]')]
-  expect(items.map((b) => b.textContent)).toEqual(['player 16x16', 'tiles 8x8'])
-  expect(items[0]?.getAttribute('aria-current')).toBe('true')
-  expect(items[1]?.getAttribute('aria-current')).not.toBe('true')
-  click('[data-file="tiles.png"]')
-  expect(calls).toEqual([['open', 'tiles.png']])
-})
-
-async function submit(form: HTMLElement) {
-  await act(async () => {
-    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-  })
-}
-
-function fill(form: HTMLElement, values: Record<string, string>) {
-  for (const [name, value] of Object.entries(values)) {
-    const input = form.querySelector(`[name="${name}"]`) as HTMLInputElement
-    input.value = value
-  }
-}
-
-it('makes a new sheet and shows the reason it is refused', async () => {
-  const { $, calls } = setup(
-    SheetPicker,
-    {},
-    'a cell size of 12 is not a multiple of 8',
-  )
-  const form = $('form.t8p-new')
-  fill(form, { name: 'hero', cellWidth: '16', cellHeight: '12', columns: '4' })
-  await submit(form)
-  expect(calls).toEqual([
-    [
-      'newSheet',
-      { name: 'hero', cellWidth: 16, cellHeight: 12, columns: 4, rows: 16 },
-    ],
+it('sets the zoom and marks the current one', () => {
+  const { root, calls, click } = setup(ZoomPicker, { zoom: 2 })
+  const buttons = [...root.querySelectorAll('[data-zoom]')]
+  expect(buttons.map((b) => b.textContent)).toEqual(['1 cell', '2x2', '4x4'])
+  expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual([
+    'false',
+    'true',
+    'false',
   ])
-  expect($('.t8p-error').textContent).toBe(
-    'a cell size of 12 is not a multiple of 8',
+  expect((buttons[2] as HTMLElement).title).toBe('Show 4x4 cells (4)')
+  click('[data-zoom="1"]')
+  click('[data-zoom="4"]')
+  expect(calls).toEqual([
+    ['setZoom', 1],
+    ['setZoom', 4],
+  ])
+})
+
+function status(hover: Hover | undefined, over: Partial<EditorState> = {}) {
+  let helped = 0
+  const state = makeState(over)
+  const { editor } = fakeEditor(state)
+  const root = mount(
+    <StatusLine
+      editor={editor}
+      state={state}
+      hover={hover}
+      onHelp={() => helped++}
+    />,
   )
+  const text = (out: string) =>
+    root.querySelector(`[data-out="${out}"]`)?.textContent
+  return { root, text, helped: () => helped }
+}
+
+it('shows where the pointer is', () => {
+  const { text, root } = status({ at: { x: 5, y: 12 }, frame: 3 })
+  expect([text('x'), text('y'), text('frame')]).toEqual(['5', '12', '3'])
+  expect(root.textContent).toContain('right-click picks a colour')
 })
 
-it('shows no reason when a new sheet is made', async () => {
-  const { $, root } = setup(SheetPicker)
-  const form = $('form.t8p-new')
-  fill(form, { name: 'hero' })
-  await submit(form)
-  expect(root.querySelector('.t8p-error')).toBeNull()
+it('shows dashes once the pointer leaves', () => {
+  const { text } = status(undefined)
+  expect([text('x'), text('y'), text('frame')]).toEqual(['-', '-', '-'])
 })
 
-it('resizes the open sheet, prefilled with its size', async () => {
-  const { $, calls } = setup(SheetPicker)
-  const form = $('form.t8p-resize')
-  const columns = form.querySelector('[name="columns"]') as HTMLInputElement
-  const rows = form.querySelector('[name="rows"]') as HTMLInputElement
-  expect([columns.value, rows.value]).toEqual(['4', '2'])
-  fill(form, { rows: '3' })
-  await submit(form)
-  expect(calls).toEqual([['resize', { columns: 4, rows: 3 }]])
+it('shows the error in place of the hint', () => {
+  const { root } = status(undefined, { error: 'could not write player.16.png' })
+  expect(root.querySelector('.t8p-error')?.textContent).toBe(
+    'could not write player.16.png',
+  )
+  expect(root.textContent).not.toContain('right-click picks a colour')
 })
 
-it('has no resize without a sheet, and shows the editor’s error', () => {
-  const { root, $ } = setup(SheetPicker, {
-    doc: undefined,
-    error: 'could not write player.16.png',
+it('opens the shortcuts from ?', () => {
+  const { root, helped } = status(undefined)
+  const help = root.querySelector('[title="Shortcuts (?)"]') as HTMLElement
+  act(() => help.click())
+  expect(helped()).toBe(1)
+})
+
+function sheet() {
+  let closed = 0
+  const root = mount(<ShortcutSheet onClose={() => closed++} />)
+  return { root, closed: () => closed }
+}
+
+it('lists every shortcut with its key label', () => {
+  const { root } = sheet()
+  const keys = [...root.querySelectorAll('kbd')].map((k) => k.textContent)
+  for (const key of Object.keys(SHORTCUTS))
+    expect(keys).toContain(keyLabel(key))
+  expect(keys).toContain('Right-click')
+  expect(keys).toContain('?')
+  expect(root.textContent).toContain('Flip left to right')
+  expect([...root.querySelectorAll('h3')].map((h) => h.textContent)).toEqual([
+    'Tools',
+    'Editing',
+    'Selection',
+    'View',
+  ])
+})
+
+it('focuses Close, and closes on Escape, Close and the backdrop', () => {
+  const { root, closed } = sheet()
+  const close = [...root.querySelectorAll('button')].find(
+    (b) => b.textContent === 'Close',
+  ) as HTMLButtonElement
+  expect(document.activeElement).toBe(close)
+  act(() => {
+    close.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    )
   })
-  expect(root.querySelector('form.t8p-resize')).toBeNull()
-  expect($('.t8p-error').textContent).toBe('could not write player.16.png')
+  expect(closed()).toBe(1)
+  act(() => close.click())
+  expect(closed()).toBe(2)
+  act(() => (root.querySelector('[role="dialog"]') as HTMLElement).click())
+  expect(closed()).toBe(2)
+  act(() => (root.querySelector('.t8e-dialog') as HTMLElement).click())
+  expect(closed()).toBe(3)
 })

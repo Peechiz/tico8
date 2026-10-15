@@ -1,324 +1,408 @@
-import { useLayoutEffect, useState } from 'preact/hooks'
+// The panels around the canvas: the tool rail, the colours, the zoom, the
+// status line and the shortcut sheet.
+import { Fragment } from 'preact'
+import { useEffect, useRef } from 'preact/hooks'
 import type { Rgb } from '../palette.ts'
+import { Icon, type IconName } from './icons.tsx'
+import { keyLabel, titled, useStyle } from './theme.ts'
 import {
   type ActionName,
   type EditorProps,
   SHORTCUTS,
-  TOOLS,
+  type ShortcutSheetProps,
+  type StatusProps,
   type ToolName,
   type Zoom,
 } from './types.ts'
 
-const STYLE_ID = 'tico8-editor-panels'
-
 const CSS = `
-.t8p { display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
-  font: 12px/1.2 system-ui, sans-serif; color: #ddd; }
-.t8p button { font: inherit; color: inherit; background: #2a2a2e;
-  border: 1px solid #444; border-radius: 3px; padding: 2px 6px; cursor: pointer; }
-.t8p button:hover:not(:disabled) { background: #3a3a40; }
-.t8p button:disabled { opacity: 0.4; cursor: default; }
-.t8p button[aria-pressed="true"], .t8p button[aria-current="true"] {
-  background: #4a5a8a; border-color: #8aa0e0; }
-.t8p .t8p-sep { width: 1px; align-self: stretch; background: #444; margin: 0 2px; }
-.t8p input { font: inherit; color: inherit; background: #1c1c1f;
-  border: 1px solid #444; border-radius: 3px; padding: 2px 4px; width: 4em; }
-.t8p input[name="name"] { width: 8em; }
-.t8p-palette { gap: 2px; }
-.t8p-palette .t8p-sep { background: none; width: 8px; }
-.t8p-palette button.t8p-swatch { width: 18px; height: 18px; padding: 0;
-  border: 2px solid #1c1c1f; border-radius: 2px; }
-.t8p-palette button.t8p-swatch[aria-pressed="true"] { border-color: #fff;
-  outline: 1px solid #000; }
-.t8p-sheets { flex-direction: column; align-items: stretch; }
-.t8p-sheets ul { list-style: none; margin: 0; padding: 0;
-  display: flex; flex-direction: column; gap: 2px; }
-.t8p-sheets ul button { width: 100%; text-align: left; }
-.t8p-sheets form { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-.t8p-sheets fieldset { border: 1px solid #333; border-radius: 3px;
-  padding: 4px; margin: 0; }
-.t8p-sheets legend { color: #999; padding: 0 2px; }
-.t8p-error { color: #ff7a7a; }
+.t8p-rail { width: 52px; height: 100%; box-sizing: border-box; background: var(--k0);
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0; }
+.t8p-rail .t8p-gap { height: 8px; flex: none; }
+.t8p-rail button { width: 32px; height: 28px; flex: none; display: grid;
+  place-items: center; color: var(--k13); }
+.t8p-rail button:hover:not(:disabled) { color: var(--k7); }
+.t8p-rail button[aria-pressed="true"] { background: var(--k10); color: var(--k0); }
+
+.t8p-colors { display: flex; flex-direction: column; gap: 10px; }
+.t8p-cur { display: flex; align-items: center; gap: 10px; color: var(--k7);
+  font: 18px/1 var(--pixel); }
+.t8p-cur i { width: 36px; height: 36px; flex: none; box-shadow: 0 0 0 2px var(--k7); }
+.t8p-colors h5 { margin: 4px 0 0; font: 12px/1 var(--pixel); color: var(--k13);
+  font-weight: 400; }
+.t8p-pal { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+  box-shadow: 0 0 0 2px var(--k5); }
+.t8p-pal button { height: 36px; position: relative; }
+.t8p-pal button span { position: absolute; left: 6px; top: 6px; font-size: 12px;
+  color: var(--k0); opacity: 0; }
+.t8p-pal button.dark span { color: var(--k7); }
+.t8p-pal button:hover span, .t8p-pal button[aria-pressed="true"] span { opacity: 1; }
+.t8p-pal button[aria-pressed="true"] { z-index: 1;
+  box-shadow: inset 0 0 0 2px var(--k7), inset 0 0 0 4px var(--k0); }
+
+.t8p-zoom { display: flex; gap: 2px; margin-top: 8px; }
+.t8p-zoom button { flex: 1; padding: 5px 4px; white-space: nowrap; background: var(--k1); color: var(--k13); }
+.t8p-zoom button[aria-pressed="true"] { background: var(--k13); color: var(--k7); }
+
+.t8p-status { height: 28px; box-sizing: border-box; display: flex; gap: 20px;
+  align-items: center; padding: 0 12px; background: var(--k0); color: var(--k13);
+  border-top: 2px solid var(--k1); white-space: nowrap; overflow: hidden; }
+.t8p-status b { color: var(--k7); font-weight: 400; }
+.t8p-status .t8p-end { margin-left: auto; overflow: hidden; text-overflow: ellipsis; }
+.t8p-status .t8p-error { color: var(--k8); }
+.t8p-status .t8p-help { width: 20px; height: 20px; flex: none; color: var(--k7);
+  background: var(--k1); }
+.t8p-status .t8p-help:hover { background: var(--k13); }
+
+.t8e-dialog > .t8p-keys { width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px); overflow: auto; }
+.t8p-keys h3 { margin: 4px 0 0; font: 12px/1 var(--pixel); color: var(--k13);
+  font-weight: 400; }
+.t8p-keys dl { margin: 0; display: grid; grid-template-columns: 11em 1fr;
+  gap: 4px 16px; align-items: baseline; }
+.t8p-keys dt { color: var(--k7); } .t8p-keys kbd { font: 600 13px var(--sans); }
+.t8p-keys dd { margin: 0; }
+.t8p-keys dt kbd + kbd::before { content: ' / '; color: var(--k13); }
 `
 
-/** Put the panels' CSS in the page once. */
-function useStyle() {
-  useLayoutEffect(() => {
-    if (document.getElementById(STYLE_ID)) return
-    const style = document.createElement('style')
-    style.id = STYLE_ID
-    style.textContent = CSS
-    document.head.append(style)
-  }, [])
+const useCss = () => useStyle('tico8-editor-panels', CSS)
+
+/** A button on the rail: a tool, one of the rectangles, or an action. */
+interface RailButton {
+  label: string
+  icon: IconName
+  /** What the title names the key of. */
+  what: ToolName | ActionName
+  tool?: ToolName
+  /** For the rectangles: which of the pair this is. */
+  filled?: boolean
+  action?: ActionName
 }
 
-/** The key that does `what`, as a label: `mod+z` reads `Ctrl+Z`. */
-function shortcut(what: ToolName | ActionName): string | undefined {
-  const key = Object.keys(SHORTCUTS).find((k) => SHORTCUTS[k] === what)
-  if (!key) return undefined
-  return key
-    .split('+')
-    .map((part) =>
-      part === 'mod' ? 'Ctrl' : part[0]?.toUpperCase() + part.slice(1),
-    )
-    .join('+')
-}
-
-const label = (name: string) =>
-  name.charAt(0).toUpperCase() + name.slice(1).replace(/([XY])$/, ' $1')
-
-const titled = (name: string, what: ToolName | ActionName) => {
-  const key = shortcut(what)
-  return key ? `${name} (${key})` : name
-}
-
-const ACTIONS: readonly ActionName[] = [
-  'flipX',
-  'flipY',
-  'rotate',
-  'copy',
-  'cut',
-  'paste',
+const RAIL: readonly (readonly RailButton[])[] = [
+  [
+    { label: 'Pencil', icon: 'pencil', what: 'pencil', tool: 'pencil' },
+    { label: 'Eraser', icon: 'eraser', what: 'eraser', tool: 'eraser' },
+    { label: 'Fill', icon: 'fill', what: 'fill', tool: 'fill' },
+    { label: 'Pick', icon: 'pick', what: 'pick', tool: 'pick' },
+  ],
+  [
+    { label: 'Line', icon: 'line', what: 'line', tool: 'line' },
+    {
+      label: 'Rectangle',
+      icon: 'rect',
+      what: 'rect',
+      tool: 'rect',
+      filled: false,
+    },
+    {
+      label: 'Filled rectangle',
+      icon: 'rectFilled',
+      what: 'rect',
+      tool: 'rect',
+      filled: true,
+    },
+  ],
+  [{ label: 'Select', icon: 'select', what: 'select', tool: 'select' }],
+  [
+    { label: 'Undo', icon: 'undo', what: 'undo', action: 'undo' },
+    { label: 'Redo', icon: 'redo', what: 'redo', action: 'redo' },
+  ],
 ]
 
-const ZOOMS: readonly Zoom[] = [1, 2, 4]
+/** A rail button's title: the filled rectangle is R pressed again. */
+function railTitle({ label, what, filled }: RailButton): string {
+  if (!filled) return titled(label, what)
+  const key = Object.keys(SHORTCUTS).find((k) => SHORTCUTS[k] === what)
+  return key ? `${label} (${keyLabel(key)} again)` : label
+}
 
-/** A button per tool and action. */
-export function Toolbar({ editor, state }: EditorProps) {
-  useStyle()
+/** The tools in groups, then undo and redo, as a column of icons. */
+export function ToolRail({ editor, state }: EditorProps) {
+  useCss()
+  const press = (button: RailButton) => {
+    if (button.action) return editor.act(button.action)
+    if (button.tool) editor.setTool(button.tool)
+    if (button.filled !== undefined) editor.setFilled(button.filled)
+  }
+  const pressed = ({ tool, filled }: RailButton) =>
+    tool === undefined
+      ? undefined
+      : state.tool === tool && (filled === undefined || filled === state.filled)
+  const disabled = ({ action }: RailButton) =>
+    (action === 'undo' && !state.canUndo) ||
+    (action === 'redo' && !state.canRedo)
+
   return (
-    <div class="t8p t8p-toolbar" role="toolbar">
-      {TOOLS.map((tool) => (
-        <button
-          key={tool}
-          type="button"
-          data-tool={tool}
-          aria-pressed={state.tool === tool}
-          title={titled(label(tool), tool)}
-          onClick={() => editor.setTool(tool)}
-        >
-          {label(tool)} <kbd>{shortcut(tool)}</kbd>
-        </button>
-      ))}
-      <button
-        type="button"
-        data-filled
-        aria-pressed={state.filled}
-        title="Fill rectangles"
-        onClick={() => editor.setFilled(!state.filled)}
-      >
-        Filled
-      </button>
-      <span class="t8p-sep" />
-      <button
-        type="button"
-        data-action="undo"
-        disabled={!state.canUndo}
-        title={titled('Undo', 'undo')}
-        onClick={() => editor.act('undo')}
-      >
-        Undo
-      </button>
-      <button
-        type="button"
-        data-action="redo"
-        disabled={!state.canRedo}
-        title={titled('Redo', 'redo')}
-        onClick={() => editor.act('redo')}
-      >
-        Redo
-      </button>
-      <span class="t8p-sep" />
-      {ACTIONS.map((action) => (
-        <button
-          key={action}
-          type="button"
-          data-action={action}
-          title={titled(label(action), action)}
-          onClick={() => editor.act(action)}
-        >
-          {label(action)}
-        </button>
-      ))}
-      <span class="t8p-sep" />
-      {ZOOMS.map((zoom) => (
-        <button
-          key={zoom}
-          type="button"
-          data-zoom={zoom}
-          aria-pressed={state.zoom === zoom}
-          title={`Show ${zoom}x${zoom} cells`}
-          onClick={() => editor.setZoom(zoom)}
-        >
-          {zoom}x{zoom}
-        </button>
+    <div
+      class="t8p-rail"
+      role="toolbar"
+      aria-orientation="vertical"
+      aria-label="Tools"
+    >
+      {RAIL.map((group, g) => (
+        <Fragment key={group[0]?.label}>
+          {g > 0 && <span class="t8p-gap" aria-hidden="true" />}
+          {group.map((button) => (
+            <button
+              key={button.label}
+              type="button"
+              data-tool={button.tool}
+              data-filled={button.filled}
+              data-action={button.action}
+              aria-label={button.label}
+              aria-pressed={pressed(button)}
+              disabled={disabled(button)}
+              title={railTitle(button)}
+              onClick={() => press(button)}
+            >
+              <Icon name={button.icon} />
+            </button>
+          ))}
+        </Fragment>
       ))}
     </div>
   )
 }
 
 const css = ([r, g, b]: Rgb) => `rgb(${r} ${g} ${b})`
+const hex = (color: Rgb) =>
+  `#${color.map((c) => c.toString(16).padStart(2, '0')).join('')}`
 
-/** The colours to paint with: the palette, then the sheet's own. */
+/** A colour's relative luminance, as WCAG reckons it. */
+function luminance(color: Rgb): number {
+  const [r, g, b] = color.map((c) => {
+    const s = c / 255
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+  }) as [number, number, number]
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+/**
+ * Whether light text reads better than black on `color`: where black's
+ * contrast, (L + 0.05) / 0.05, falls below near-white's.
+ */
+const dark = (color: Rgb) => luminance(color) < 0.17
+
+/** The colours to paint with: the current one, the palette, the sheet's own. */
 export function PalettePanel({ editor, state }: EditorProps) {
-  useStyle()
+  useCss()
   const { doc } = state
   if (!doc) return null
+  const current = doc.colors[state.color]
+
   const swatch = (color: Rgb, index: number) => (
     <button
       key={index}
       type="button"
-      class="t8p-swatch"
+      class={dark(color) ? 'dark' : undefined}
       data-color={index}
+      aria-label={`colour ${index}`}
       aria-pressed={state.color === index}
-      title={`${index}: ${css(color)}`}
+      title={`colour ${index}: ${hex(color)}`}
       style={{ background: css(color) }}
       onClick={() => editor.setColor(index)}
-    />
+    >
+      <span aria-hidden="true">{index}</span>
+    </button>
   )
-  const palette = doc.colors.slice(0, doc.paletteSize)
   const extra = doc.colors.slice(doc.paletteSize)
+
   return (
-    <div class="t8p t8p-palette">
-      {palette.map((color, i) => swatch(color, i))}
-      {extra.length > 0 && <span class="t8p-sep" />}
-      {extra.map((color, i) => swatch(color, doc.paletteSize + i))}
+    <div class="t8p-colors">
+      <div class="t8p-cur">
+        <i style={{ background: current ? css(current) : 'none' }} />
+        <span>colour {state.color}</span>
+      </div>
+      <div class="t8p-pal">
+        {doc.colors.slice(0, doc.paletteSize).map(swatch)}
+      </div>
+      {extra.length > 0 && (
+        <>
+          <h5>from this sheet</h5>
+          <div class="t8p-pal t8p-extra">
+            {extra.map((color, i) => swatch(color, doc.paletteSize + i))}
+          </div>
+        </>
+      )}
     </div>
   )
 }
 
-/** A whole number from a form field, or the fallback. */
-const whole = (form: FormData, name: string, fallback: number) => {
-  const n = Number(form.get(name))
-  return Number.isInteger(n) && n > 0 ? n : fallback
+const ZOOMS: readonly { zoom: Zoom; label: string; name: string }[] = [
+  { zoom: 1, label: '1 cell', name: 'Show 1 cell' },
+  { zoom: 2, label: '2x2', name: 'Show 2x2 cells' },
+  { zoom: 4, label: '4x4', name: 'Show 4x4 cells' },
+]
+
+/** How many cells the painting area shows: 1, 2x2 or 4x4. */
+export function ZoomPicker({ editor, state }: EditorProps) {
+  useCss()
+  return (
+    <div class="t8p-zoom">
+      {ZOOMS.map(({ zoom, label, name }) => (
+        <button
+          key={zoom}
+          type="button"
+          data-zoom={zoom}
+          aria-pressed={state.zoom === zoom}
+          title={titled(name, `zoom${zoom}`)}
+          onClick={() => editor.setZoom(zoom)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
 }
 
-/** The sheets to open, and New and Resize. */
-export function SheetPicker({ editor, state }: EditorProps) {
-  useStyle()
-  const [refused, setRefused] = useState<string | undefined>()
-  const open = state.doc?.info.file
-  const size = state.doc && {
-    columns: state.doc.image.width / state.doc.info.cellWidth,
-    rows: state.doc.image.height / state.doc.info.cellHeight,
-  }
+/** x, y and frame under the pointer, or the last error; ? for the keys. */
+export function StatusLine({ state, hover, onHelp }: StatusProps) {
+  useCss()
+  const show = (n: number | undefined) => (n === undefined ? '-' : n)
+  return (
+    <div class="t8p-status">
+      <span>
+        x <b data-out="x">{show(hover?.at.x)}</b> y{' '}
+        <b data-out="y">{show(hover?.at.y)}</b>
+      </span>
+      <span>
+        frame <b data-out="frame">{show(hover?.frame)}</b>
+      </span>
+      {state.error ? (
+        <span class="t8p-end t8p-error" role="alert">
+          {state.error}
+        </span>
+      ) : (
+        <span class="t8p-end">right-click picks a colour</span>
+      )}
+      <button
+        type="button"
+        class="t8p-help"
+        aria-label="Shortcuts"
+        title="Shortcuts (?)"
+        onClick={onHelp}
+      >
+        ?
+      </button>
+    </div>
+  )
+}
 
-  const onNew = async (event: Event) => {
-    event.preventDefault()
-    const form = new FormData(event.currentTarget as HTMLFormElement)
-    const reason = await editor.newSheet({
-      name: String(form.get('name') ?? '').trim(),
-      cellWidth: whole(form, 'cellWidth', 8),
-      cellHeight: whole(form, 'cellHeight', 8),
-      columns: whole(form, 'columns', 16),
-      rows: whole(form, 'rows', 16),
-    })
-    setRefused(reason)
-  }
+type Group = 'Tools' | 'Editing' | 'Selection' | 'View'
 
-  const onResize = (event: Event) => {
-    event.preventDefault()
-    if (!size) return
-    const form = new FormData(event.currentTarget as HTMLFormElement)
-    void editor.resize({
-      columns: whole(form, 'columns', size.columns),
-      rows: whole(form, 'rows', size.rows),
-    })
+/** Each tool and action, its group on the sheet and what it does. */
+const DESCRIBE: Readonly<Record<ToolName | ActionName, [Group, string]>> = {
+  pencil: ['Tools', 'Pencil'],
+  eraser: ['Tools', 'Eraser'],
+  fill: ['Tools', 'Fill an area'],
+  pick: ['Tools', 'Pick a colour'],
+  line: ['Tools', 'Line'],
+  rect: ['Tools', 'Rectangle; again for filled or outline'],
+  select: ['Tools', 'Select'],
+  undo: ['Editing', 'Undo'],
+  redo: ['Editing', 'Redo'],
+  copy: ['Editing', 'Copy'],
+  cut: ['Editing', 'Cut'],
+  paste: ['Editing', 'Paste'],
+  flipX: ['Selection', 'Flip left to right'],
+  flipY: ['Selection', 'Flip top to bottom'],
+  rotate: ['Selection', 'Rotate a quarter turn'],
+  clear: ['Selection', 'Clear the selection'],
+  deselect: ['Selection', 'Drop the selection'],
+  cellLeft: ['View', 'Move the cells shown left'],
+  cellRight: ['View', 'Move the cells shown right'],
+  cellUp: ['View', 'Move the cells shown up'],
+  cellDown: ['View', 'Move the cells shown down'],
+  zoom1: ['View', 'Show 1 cell'],
+  zoom2: ['View', 'Show 2x2 cells'],
+  zoom4: ['View', 'Show 4x4 cells'],
+}
+
+const GROUPS: readonly Group[] = ['Tools', 'Editing', 'Selection', 'View']
+
+/** Lines the keyboard map doesn't hold, by group. */
+const EXTRA: Readonly<Partial<Record<Group, [string[], string][]>>> = {
+  Tools: [[['Right-click', 'Alt-click'], 'Pick a colour']],
+  View: [[['?'], 'This list']],
+}
+
+/** A group's lines: the keys of each tool or action, and what it does. */
+function lines(group: Group): [string[], string][] {
+  const found: [string[], string][] = []
+  for (const [what, [g, text]] of Object.entries(DESCRIBE)) {
+    if (g !== group) continue
+    const keys = Object.keys(SHORTCUTS)
+      .filter((key) => SHORTCUTS[key] === what)
+      .map((key) => keyLabel(key))
+    if (keys.length > 0) found.push([keys, text])
   }
+  return [...found, ...(EXTRA[group] ?? [])]
+}
+
+/** Every shortcut with its key. */
+export function ShortcutSheet({ onClose }: ShortcutSheetProps) {
+  useCss()
+  const backdrop = useRef<HTMLDivElement>(null)
+  const close = useRef<HTMLButtonElement>(null)
+  // The latest onClose, so a new one each render doesn't move the focus.
+  const closing = useRef(onClose)
+  closing.current = onClose
+
+  useEffect(() => {
+    close.current?.focus()
+    // Capture, so Escape closes the sheet without also dropping a selection.
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopPropagation()
+      closing.current()
+    }
+    // A click on the backdrop itself, not the sheet on it.
+    function onClick(event: MouseEvent) {
+      if (event.target === event.currentTarget) closing.current()
+    }
+    const outside = backdrop.current
+    window.addEventListener('keydown', onKey, true)
+    outside?.addEventListener('click', onClick)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      outside?.removeEventListener('click', onClick)
+    }
+  }, [])
 
   return (
-    <div class="t8p t8p-sheets">
-      <ul>
-        {state.sheets.map((sheet) => (
-          <li key={sheet.file}>
-            <button
-              type="button"
-              data-file={sheet.file}
-              aria-current={sheet.file === open}
-              title={sheet.file}
-              onClick={() => void editor.open(sheet.file)}
-            >
-              {sheet.name} {sheet.cellWidth}x{sheet.cellHeight}
-            </button>
-          </li>
+    <div class="t8e-dialog" ref={backdrop}>
+      <div
+        class="t8p-keys"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="t8p-keys-title"
+      >
+        <h2 id="t8p-keys-title">Shortcuts</h2>
+        {GROUPS.map((group) => (
+          <section key={group}>
+            <h3>{group}</h3>
+            <dl>
+              {lines(group).map(([keys, text]) => (
+                <Fragment key={text}>
+                  <dt>
+                    {keys.map((key) => (
+                      <kbd key={key}>{key}</kbd>
+                    ))}
+                  </dt>
+                  <dd>{text}</dd>
+                </Fragment>
+              ))}
+            </dl>
+          </section>
         ))}
-      </ul>
-      <fieldset>
-        <legend>New</legend>
-        <form class="t8p-new" onSubmit={onNew}>
-          <input name="name" placeholder="name" aria-label="Name" required />
-          <input
-            name="cellWidth"
-            type="number"
-            min={8}
-            step={8}
-            defaultValue={8}
-            aria-label="Cell width"
-            title="Cell width"
-          />
-          x
-          <input
-            name="cellHeight"
-            type="number"
-            min={8}
-            step={8}
-            defaultValue={8}
-            aria-label="Cell height"
-            title="Cell height"
-          />
-          <input
-            name="columns"
-            type="number"
-            min={1}
-            defaultValue={16}
-            aria-label="Columns"
-            title="Columns"
-          />
-          x
-          <input
-            name="rows"
-            type="number"
-            min={1}
-            defaultValue={16}
-            aria-label="Rows"
-            title="Rows"
-          />
-          cells
-          <button type="submit">New</button>
-        </form>
-        {refused && <p class="t8p-error">{refused}</p>}
-      </fieldset>
-      {size && (
-        <fieldset>
-          <legend>Resize</legend>
-          <form
-            class="t8p-resize"
-            key={`${open}:${size.columns}x${size.rows}`}
-            onSubmit={onResize}
-          >
-            <input
-              name="columns"
-              type="number"
-              min={1}
-              defaultValue={size.columns}
-              aria-label="Columns"
-              title="Columns"
-            />
-            x
-            <input
-              name="rows"
-              type="number"
-              min={1}
-              defaultValue={size.rows}
-              aria-label="Rows"
-              title="Rows"
-            />
-            cells
-            <button type="submit">Resize</button>
-          </form>
-        </fieldset>
-      )}
-      {state.error && <p class="t8p-error">{state.error}</p>}
+        <div class="t8e-actions">
+          <button type="button" ref={close} onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

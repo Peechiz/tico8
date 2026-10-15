@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
 import { TRANSPARENT } from '../sprites.ts'
+import { Icon, type IconName } from './icons.tsx'
+import { frameAt } from './image.ts'
+import { CHECKER, GRID, INK, titled, useStyle } from './theme.ts'
 import type {
+  ActionName,
+  CanvasProps,
   Drag,
-  EditorProps,
   IndexedImage,
   Rect,
   Rgb,
@@ -13,10 +17,29 @@ import type {
 /** How big, in screen pixels, the painting area aims to be. */
 const CANVAS_TARGET = 512
 
-const CHECK_LIGHT = '#3a3a44'
-const CHECK_DARK = '#2a2a32'
-const GRID = 'rgba(255, 255, 255, 0.08)'
-const CELL_LINE = 'rgba(255, 255, 255, 0.3)'
+/** The two rings around the canvas, in screen pixels on each side. */
+const RING = 4
+
+/** The space the selection bar needs above the selection to sit there. */
+const BAR_ROOM = 36
+
+/** Below this brightness a colour is lost on the dark checker and ground. */
+const DIM = 60
+
+const CSS = `
+.t8e-canvas { flex: 1; min-width: 0; min-height: 0; display: grid;
+  place-items: center; }
+.t8e-canvas .frame { position: relative; }
+.t8e-canvas canvas { display: block; cursor: crosshair; touch-action: none;
+  box-shadow: 0 0 0 2px var(--k0), 0 0 0 4px var(--k13); }
+.t8e-canvas .bar { position: absolute; z-index: 1; display: flex; gap: 2px;
+  padding: 2px; background: var(--k0); color: var(--k7);
+  box-shadow: 0 0 0 2px var(--k13); font: 12px/1 var(--pixel);
+  white-space: nowrap; }
+.t8e-canvas .bar button { display: flex; align-items: center; gap: 4px;
+  padding: 4px 6px; color: var(--k7); }
+.t8e-canvas .bar button:hover { background: var(--k1); }
+`
 
 /** Screen pixels per sheet pixel in the painting area. */
 export function canvasScale(
@@ -24,8 +47,10 @@ export function canvasScale(
   zoom: number,
   room = CANVAS_TARGET,
 ): number {
-  const side = zoom * Math.max(doc.info.cellWidth, doc.info.cellHeight)
-  return Math.max(2, Math.floor(room / side))
+  // Fit what is shown: a sheet smaller than the zoom shows only itself.
+  const width = Math.min(zoom * doc.info.cellWidth, doc.image.width)
+  const height = Math.min(zoom * doc.info.cellHeight, doc.image.height)
+  return Math.max(2, Math.floor(room / Math.max(width, height)))
 }
 
 /** The part of the sheet the painting area shows, in sheet pixels. */
@@ -45,32 +70,31 @@ function css(color: Rgb | undefined): string {
   return color ? `rgb(${color[0]}, ${color[1]}, ${color[2]})` : '#f0f'
 }
 
-/** One sheet pixel at screen square (sx, sy): its colour or a checker. */
-function paintPixel(
+/** Whether a colour would be lost against the canvas's dark ground. */
+function isDim(color: Rgb | undefined): boolean {
+  if (!color) return false
+  const [r, g, b] = color
+  return 0.299 * r + 0.587 * g + 0.114 * b < DIM
+}
+
+/** One faint checker over `width` by `height` screen pixels, for see-through. */
+export function paintChecker(
   ctx: CanvasRenderingContext2D,
-  colors: readonly Rgb[],
-  value: number,
-  sx: number,
-  sy: number,
-  scale: number,
+  width: number,
+  height: number,
 ) {
-  if (value !== TRANSPARENT) {
-    ctx.fillStyle = css(colors[value])
-    ctx.fillRect(sx, sy, scale, scale)
-    return
-  }
-  const half = scale / 2
-  ctx.fillStyle = CHECK_LIGHT
-  ctx.fillRect(sx, sy, scale, scale)
-  if (scale < 2) return
-  ctx.fillStyle = CHECK_DARK
-  ctx.fillRect(sx + half, sy, half, half)
-  ctx.fillRect(sx, sy + half, half, half)
+  const { size, light, dark } = CHECKER
+  ctx.fillStyle = dark
+  ctx.fillRect(0, 0, width, height)
+  ctx.fillStyle = light
+  for (let y = 0; y < height; y += size)
+    for (let x = (y / size) % 2 === 0 ? 0 : size; x < width; x += 2 * size)
+      ctx.fillRect(x, y, size, size)
 }
 
 /**
  * Paint `area` of `image` at `scale`, top left at the canvas origin.
- * Transparent pixels show as a checkerboard.
+ * Transparent pixels show the checker behind the whole area.
  */
 export function paintImage(
   ctx: CanvasRenderingContext2D,
@@ -79,10 +103,13 @@ export function paintImage(
   area: Rect,
   scale: number,
 ) {
+  paintChecker(ctx, area.width * scale, area.height * scale)
   for (let y = 0; y < area.height; y++) {
     for (let x = 0; x < area.width; x++) {
       const value = image.pixels[(area.y + y) * image.width + area.x + x]
-      paintPixel(ctx, colors, value ?? TRANSPARENT, x * scale, y * scale, scale)
+      if (value === undefined || value === TRANSPARENT) continue
+      ctx.fillStyle = css(colors[value])
+      ctx.fillRect(x * scale, y * scale, scale, scale)
     }
   }
 }
@@ -145,21 +172,43 @@ function dragPoints(drag: Drag, tool: string, filled: boolean): Vec[] {
   return points
 }
 
+/** What the selection bar offers. */
+const BAR: readonly {
+  action: ActionName
+  icon?: IconName
+  label: string
+  title: string
+}[] = [
+  { action: 'flipX', icon: 'flipX', label: 'Flip H', title: 'Flip across' },
+  { action: 'flipY', icon: 'flipY', label: 'Flip V', title: 'Flip down' },
+  { action: 'rotate', icon: 'rotate', label: 'Rotate', title: 'Rotate' },
+  { action: 'deselect', label: 'Done', title: 'Done' },
+]
+
 /** The painting area: the zoomed cells, big, taking the pointer. */
-export function Canvas({ editor, state }: EditorProps) {
+export function Canvas({ editor, state, onHover }: CanvasProps) {
+  useStyle('tico8-editor-canvas', CSS)
   const ref = useRef<HTMLCanvasElement>(null)
   const box = useRef<HTMLDivElement>(null)
   const [march, setMarch] = useState(0)
   // The space the painting area has, so it fits beside the game when split.
-  const [room, setRoom] = useState(CANVAS_TARGET)
+  const [room, setRoom] = useState({
+    width: CANVAS_TARGET + 2 * RING,
+    height: CANVAS_TARGET + 2 * RING,
+  })
+  // The pixel under the pointer, for the brush outline.
+  const [hover, setHover] = useState<Vec | undefined>()
+  // Whether a press went to the editor, so its release does too.
+  const [held, setHeld] = useState(false)
   const { doc, selection } = state
 
   useEffect(() => {
     const element = box.current
     if (!element || typeof ResizeObserver === 'undefined') return
     const measure = () => {
-      const side = Math.min(element.clientWidth, element.clientHeight)
-      if (side > 0) setRoom(side)
+      const width = element.clientWidth
+      const height = element.clientHeight
+      if (width > 0 && height > 0) setRoom({ width, height })
     }
     const observer = new ResizeObserver(measure)
     observer.observe(element)
@@ -174,21 +223,29 @@ export function Canvas({ editor, state }: EditorProps) {
     return () => clearInterval(id)
   }, [selection !== undefined])
 
+  const fit = Math.min(room.width, room.height) - 2 * RING
+  const dragging = state.drag !== undefined || (held && state.tool === 'select')
+
   useEffect(() => {
     const canvas = ref.current
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx || !doc) return
-    const scale = canvasScale(doc, state.zoom, room)
+    const scale = canvasScale(doc, state.zoom, fit)
     const area = canvasArea(doc, state.cell, state.zoom)
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     paintImage(ctx, doc.image, doc.colors, area, scale)
 
-    const plot = (p: Vec, value: number) => {
+    const local = (p: Vec): Vec | undefined => {
       const x = p.x - area.x
       const y = p.y - area.y
       if (x < 0 || y < 0 || x >= area.width || y >= area.height) return
-      if (value === TRANSPARENT) return
-      paintPixel(ctx, doc.colors, value, x * scale, y * scale, scale)
+      return { x: x * scale, y: y * scale }
+    }
+    const plot = (p: Vec, value: number) => {
+      const s = local(p)
+      if (!s || value === TRANSPARENT) return
+      ctx.fillStyle = css(doc.colors[value])
+      ctx.fillRect(s.x, s.y, scale, scale)
     }
 
     const lifted = selection?.lifted
@@ -205,7 +262,7 @@ export function Canvas({ editor, state }: EditorProps) {
         plot(p, state.color)
 
     if (scale >= 6)
-      paintGrid(ctx, area, scale, { x: 1, y: 1 }, { x: 0, y: 0 }, GRID)
+      paintGrid(ctx, area, scale, { x: 1, y: 1 }, { x: 0, y: 0 }, GRID.pixel)
     const { cellWidth, cellHeight } = doc.info
     paintGrid(
       ctx,
@@ -213,7 +270,7 @@ export function Canvas({ editor, state }: EditorProps) {
       scale,
       { x: cellWidth, y: cellHeight },
       { x: 0, y: 0 },
-      CELL_LINE,
+      GRID.cell,
     )
 
     if (selection) {
@@ -224,25 +281,38 @@ export function Canvas({ editor, state }: EditorProps) {
       const h = rect.height * scale - 1
       ctx.lineWidth = 1
       ctx.setLineDash([4, 4])
-      ctx.strokeStyle = '#000'
+      ctx.strokeStyle = INK.well
       ctx.lineDashOffset = -march
       ctx.strokeRect(x, y, w, h)
-      ctx.strokeStyle = '#fff'
+      ctx.strokeStyle = INK.bright
       ctx.lineDashOffset = -march + 4
       ctx.strokeRect(x, y, w, h)
       ctx.setLineDash([])
     }
+
+    // The brush outline over the pixel under the pointer, in the colour it would paint.
+    const under = hover && !dragging ? local(hover) : undefined
+    if (under) {
+      const color = doc.colors[state.color]
+      const tinted = ['pencil', 'fill', 'line', 'rect'].includes(state.tool)
+      if (state.tool === 'pencil') {
+        ctx.globalAlpha = 0.55
+        ctx.fillStyle = css(color)
+        ctx.fillRect(under.x, under.y, scale, scale)
+        ctx.globalAlpha = 1
+      }
+      ctx.lineWidth = 2
+      ctx.strokeStyle = tinted && !isDim(color) ? css(color) : INK.bright
+      ctx.strokeRect(under.x + 1, under.y + 1, scale - 2, scale - 2)
+    }
   })
 
-  if (!doc)
-    return (
-      <div style={{ padding: '24px', color: '#889', font: '14px sans-serif' }}>
-        Pick or make a sheet
-      </div>
-    )
+  if (!doc) return null
 
-  const scale = canvasScale(doc, state.zoom, room)
+  const scale = canvasScale(doc, state.zoom, fit)
   const area = canvasArea(doc, state.cell, state.zoom)
+  const width = area.width * scale
+  const height = area.height * scale
 
   const at = (e: PointerEvent): Vec => {
     const box = (e.currentTarget as HTMLElement).getBoundingClientRect()
@@ -252,33 +322,89 @@ export function Canvas({ editor, state }: EditorProps) {
     }
   }
 
+  const hoverAt = (p: Vec | undefined) => {
+    const inside =
+      p &&
+      p.x >= area.x &&
+      p.y >= area.y &&
+      p.x < area.x + area.width &&
+      p.y < area.y + area.height
+    setHover(inside ? p : undefined)
+    onHover?.(inside ? { at: p, frame: frameAt(doc, p) } : undefined)
+  }
+
+  // The bar sits just above the selection, or below it when there is no room.
+  let bar: { left: number; top: number; above: boolean } | undefined
+  if (selection && !held) {
+    const { rect } = selection
+    const left = Math.max(0, (rect.x - area.x) * scale)
+    const top = (rect.y - area.y) * scale
+    const above = (room.height - height) / 2 + top >= BAR_ROOM
+    bar = {
+      left,
+      top: above ? top - 6 : (rect.y + rect.height - area.y) * scale + 6,
+      above,
+    }
+  }
+
   return (
-    <div ref={box} style={{ flex: '1', minWidth: 0, minHeight: 0 }}>
-      <canvas
-        ref={ref}
-        width={area.width * scale}
-        height={area.height * scale}
-        style={{
-          display: 'block',
-          width: `${area.width * scale}px`,
-          height: `${area.height * scale}px`,
-          background: '#111',
-          cursor: 'crosshair',
-          touchAction: 'none',
-        }}
-        onPointerDown={(e) => {
-          if (e.button !== 0) return
-          e.preventDefault()
-          ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
-          editor.pointerDown(at(e))
-        }}
-        onPointerMove={(e) => editor.pointerMove(at(e))}
-        onPointerUp={(e) => {
-          if (e.button !== 0) return
-          ;(e.currentTarget as Element).releasePointerCapture?.(e.pointerId)
-          editor.pointerUp(at(e))
-        }}
-      />
+    <div ref={box} class="t8e-canvas">
+      <div class="frame">
+        <canvas
+          ref={ref}
+          width={width}
+          height={height}
+          style={{ width: `${width}px`, height: `${height}px` }}
+          onContextMenu={(e) => e.preventDefault()}
+          onPointerDown={(e) => {
+            if (e.button === 2 || (e.button === 0 && e.altKey)) {
+              e.preventDefault()
+              editor.pickAt(at(e))
+              return
+            }
+            if (e.button !== 0) return
+            e.preventDefault()
+            ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
+            setHeld(true)
+            editor.pointerDown(at(e))
+          }}
+          onPointerMove={(e) => {
+            const p = at(e)
+            hoverAt(p)
+            editor.pointerMove(p)
+          }}
+          onPointerUp={(e) => {
+            if (e.button !== 0 || !held) return
+            ;(e.currentTarget as Element).releasePointerCapture?.(e.pointerId)
+            setHeld(false)
+            editor.pointerUp(at(e))
+          }}
+          onPointerCancel={() => setHeld(false)}
+          onPointerLeave={() => hoverAt(undefined)}
+        />
+        {bar && (
+          <div
+            class="bar"
+            style={{
+              left: `${bar.left}px`,
+              top: `${bar.top}px`,
+              transform: bar.above ? 'translateY(-100%)' : undefined,
+            }}
+          >
+            {BAR.map(({ action, icon, label, title }) => (
+              <button
+                key={action}
+                type="button"
+                title={titled(title, action)}
+                onClick={() => editor.act(action)}
+              >
+                {icon && <Icon name={icon} />}
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

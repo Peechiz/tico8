@@ -8,6 +8,7 @@ import type {
   Rgb,
   SheetDoc,
   SheetInfo,
+  Vec,
 } from './types.ts'
 
 /**
@@ -119,4 +120,11 @@ export function createHistory(limit = 100): History {
       return forward.length > 0
     },
   }
+}
+
+/** The frame number of the cell holding `at`, counted across then down. */
+export function frameAt(doc: SheetDoc, at: Vec): number {
+  const { cellWidth, cellHeight } = doc.info
+  const columns = Math.floor(doc.image.width / cellWidth)
+  return Math.floor(at.y / cellHeight) * columns + Math.floor(at.x / cellWidth)
 }

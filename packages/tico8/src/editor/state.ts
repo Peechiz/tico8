@@ -120,6 +120,7 @@ export function createEditor(options: {
     drag: undefined,
     canUndo: false,
     canRedo: false,
+    saving: false,
     error: undefined,
     version: 0,
   }
@@ -134,6 +135,8 @@ export function createEditor(options: {
   const onDisk = new Map<string, Uint8ClampedArray>()
   /** Writes run one after another, in order. */
   let writes: Promise<void> = Promise.resolve()
+  /** How many writes are queued or running. */
+  let pending = 0
   let destroyed = false
 
   function set(patch: Partial<EditorState>, pixels = false) {
@@ -200,6 +203,8 @@ export function createEditor(options: {
     if (last && sameBytes(last, rgba.data)) return writes
     onDisk.set(file, rgba.data)
     remember(file, rgba.data)
+    pending++
+    if (!state.saving) set({ saving: true })
     writes = writes.then(async () => {
       try {
         await host.write(file, await encodePng(rgba))
@@ -207,6 +212,8 @@ export function createEditor(options: {
         if (!destroyed)
           set({ error: `could not save ${file}: ${message(error)}` })
       }
+      pending--
+      if (pending === 0 && !destroyed) set({ saving: false })
     })
     return writes
   }
@@ -521,6 +528,10 @@ export function createEditor(options: {
     void save()
   }
 
+  function zoomTo(zoom: Zoom) {
+    set({ zoom, cell: clampCell(state.doc, state.cell, zoom) })
+  }
+
   function act(action: ActionName) {
     const doc = state.doc
     if (!doc || gesture) return
@@ -577,6 +588,44 @@ export function createEditor(options: {
         set({ selection: undefined })
         void save()
         return
+      case 'cellLeft':
+        return set({
+          cell: clampCell(
+            doc,
+            { x: state.cell.x - 1, y: state.cell.y },
+            state.zoom,
+          ),
+        })
+      case 'cellRight':
+        return set({
+          cell: clampCell(
+            doc,
+            { x: state.cell.x + 1, y: state.cell.y },
+            state.zoom,
+          ),
+        })
+      case 'cellUp':
+        return set({
+          cell: clampCell(
+            doc,
+            { x: state.cell.x, y: state.cell.y - 1 },
+            state.zoom,
+          ),
+        })
+      case 'cellDown':
+        return set({
+          cell: clampCell(
+            doc,
+            { x: state.cell.x, y: state.cell.y + 1 },
+            state.zoom,
+          ),
+        })
+      case 'zoom1':
+        return zoomTo(1)
+      case 'zoom2':
+        return zoomTo(2)
+      case 'zoom4':
+        return zoomTo(4)
     }
   }
 
@@ -680,9 +729,7 @@ export function createEditor(options: {
     pickCell(cell) {
       set({ cell: clampCell(state.doc, cell, state.zoom) })
     },
-    setZoom(zoom) {
-      set({ zoom, cell: clampCell(state.doc, state.cell, zoom) })
-    },
+    setZoom: zoomTo,
     setTool,
     setColor(color) {
       set({ color })
@@ -693,10 +740,21 @@ export function createEditor(options: {
     pointerDown,
     pointerMove,
     pointerUp,
+    pickAt(at) {
+      const doc = state.doc
+      if (!doc) return
+      const color = pickColor(shown(doc), at)
+      if (color !== undefined && color !== TRANSPARENT) set({ color })
+    },
     act,
     key(name) {
       const command = SHORTCUTS[name]
       if (!command) return false
+      // R again on the rectangle switches between outline and filled.
+      if (command === 'rect' && state.tool === 'rect') {
+        set({ filled: !state.filled })
+        return true
+      }
       if ((TOOLS as readonly string[]).includes(command)) {
         setTool(command as ToolName)
       } else {

@@ -104,3 +104,56 @@ it('works when localStorage throws', () => {
   click('Sprites')
   expect(visible(root.querySelector('#sprites')!)).toBe(true)
 })
+
+const divider = () => root.querySelector('[role="separator"]') as HTMLElement
+const press = (key: string) =>
+  act(() => {
+    divider().dispatchEvent(
+      new KeyboardEvent('keydown', { key, bubbles: true }),
+    )
+  })
+const saved = () => JSON.parse(localStorage.getItem('tico8:shell') ?? 'null')
+
+it('shows the divider only while split beside an editor', () => {
+  mount()
+  expect(divider()).toBeNull()
+  click('Sprites')
+  expect(divider()).toBeNull()
+  click('Split')
+  expect(divider().getAttribute('aria-orientation')).toBe('vertical')
+  expect(divider().getAttribute('aria-valuenow')).toBe('40')
+  click('Split')
+  expect(divider()).toBeNull()
+})
+
+it('moves the divider with the arrow keys and clamps at 20 and 80', () => {
+  mount()
+  click('Sprites')
+  click('Split')
+  press('ArrowRight')
+  expect(divider().getAttribute('aria-valuenow')).toBe('45')
+  press('ArrowLeft')
+  press('ArrowLeft')
+  expect(divider().getAttribute('aria-valuenow')).toBe('35')
+  for (let i = 0; i < 20; i++) press('ArrowLeft')
+  expect(divider().getAttribute('aria-valuenow')).toBe('20')
+  for (let i = 0; i < 20; i++) press('ArrowRight')
+  expect(divider().getAttribute('aria-valuenow')).toBe('80')
+})
+
+it('saves and restores the width', () => {
+  mount()
+  click('Sprites')
+  click('Split')
+  press('ArrowRight')
+  expect(saved().width).toBe(45)
+  act(() => render(null, root))
+  act(() => render(<Shell gameUrl="/g" tabs={tabs} />, root))
+  expect(divider().getAttribute('aria-valuenow')).toBe('45')
+})
+
+it('loads 40 when the saved choice has no width', () => {
+  localStorage.setItem('tico8:shell', '{"tab":"Sprites","split":true}')
+  mount()
+  expect(divider().getAttribute('aria-valuenow')).toBe('40')
+})

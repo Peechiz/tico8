@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'preact/hooks'
 import { Canvas } from './canvas.tsx'
-import { PalettePanel, SheetPicker, Toolbar } from './panels.tsx'
-import { SheetView } from './sheet-view.tsx'
+import {
+  PalettePanel,
+  ShortcutSheet,
+  StatusLine,
+  ToolRail,
+  ZoomPicker,
+} from './panels.tsx'
+import { FrameStrip, SheetView } from './sheet-view.tsx'
+import { SheetTabs } from './sheets.tsx'
 import { keyName } from './state.ts'
-import type { Editor } from './types.ts'
+import { useStyle } from './theme.ts'
+import type { Editor, Hover } from './types.ts'
 
 /** Whether a key went to a text field, where shortcuts must not fire. */
 function typing(target: EventTarget | null): boolean {
@@ -16,9 +24,39 @@ function typing(target: EventTarget | null): boolean {
   )
 }
 
-/** The Sprites tab: the sheets, the tools and colours around the canvas. */
+const CSS = `
+.t8e-sprites-box { height: 100%; container-type: inline-size; }
+.t8e-sprites { height: 100%; display: grid; background: var(--k1);
+  grid-template:
+    "tabs tabs tabs" auto
+    "rail paint side" minmax(0, 1fr)
+    "frames frames frames" auto
+    "status status status" auto / 52px minmax(0, 1fr) 232px; }
+.t8e-sprites > .tabs { grid-area: tabs; min-width: 0; }
+.t8e-sprites > .rail { grid-area: rail; background: var(--k0); }
+.t8e-sprites > .paint { grid-area: paint; display: flex; min-width: 0; min-height: 0; }
+.t8e-sprites > .side { grid-area: side; background: var(--k0); padding: 12px;
+  display: flex; flex-direction: column; gap: 14px; overflow: auto; }
+.t8e-sprites > .frames { grid-area: frames; min-width: 0; }
+.t8e-sprites > .status { grid-area: status; }
+.t8e-sprites .t8e-empty { margin: auto; color: var(--k13); font-size: 18px; }
+@container (max-width: 760px) {
+  .t8e-sprites { grid-template:
+      "tabs tabs" auto
+      "rail paint" minmax(0, 1fr)
+      "rail side" auto
+      "frames frames" auto
+      "status status" auto / 52px minmax(0, 1fr); }
+  .t8e-sprites > .side { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+}
+`
+
+/** The Sprites tab: sheet tabs, tools, the canvas, colours and the sheet. */
 export function SpriteEditor({ editor }: { editor: Editor }) {
+  useStyle('tico8-sprite-editor', CSS)
   const [state, setState] = useState(editor.get())
+  const [hover, setHover] = useState<Hover | undefined>()
+  const [help, setHelp] = useState(false)
 
   useEffect(() => {
     setState(editor.get())
@@ -28,57 +66,51 @@ export function SpriteEditor({ editor }: { editor: Editor }) {
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (typing(event.target)) return
+      if (event.key === '?') {
+        event.preventDefault()
+        setHelp((open) => !open)
+        return
+      }
+      // The shortcut sheet is a dialog: keys behind it do nothing.
+      if (help) return
       if (editor.key(keyName(event))) event.preventDefault()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [editor])
+  }, [editor, help])
 
   const props = { editor, state }
   return (
-    <div style={layout}>
-      <div style={side}>
-        <SheetPicker {...props} />
-      </div>
-      <div style={middle}>
-        <Toolbar {...props} />
-        <div style={paint}>
-          <Canvas {...props} />
+    <div class="t8e t8e-sprites-box">
+      <div class="t8e-sprites">
+        <div class="tabs">
+          <SheetTabs {...props} />
+        </div>
+        <div class="rail">
+          <ToolRail {...props} />
+        </div>
+        <div class="paint">
+          {state.doc ? (
+            <Canvas {...props} onHover={setHover} />
+          ) : (
+            <p class="t8e-empty">Make a sheet with + to start painting</p>
+          )}
+        </div>
+        <div class="side">
+          <PalettePanel {...props} />
+          <div>
+            <SheetView {...props} />
+            <ZoomPicker {...props} />
+          </div>
+        </div>
+        <div class="frames">
+          <FrameStrip {...props} />
+        </div>
+        <div class="status">
+          <StatusLine {...props} hover={hover} onHelp={() => setHelp(true)} />
         </div>
       </div>
-      <div style={side}>
-        <PalettePanel {...props} />
-        <SheetView {...props} />
-      </div>
+      {help && <ShortcutSheet onClose={() => setHelp(false)} />}
     </div>
   )
 }
-
-const layout = {
-  display: 'flex',
-  width: '100%',
-  height: '100%',
-  gap: '8px',
-  padding: '8px',
-  boxSizing: 'border-box',
-  overflow: 'hidden',
-} as const
-
-const side = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '8px',
-  width: '220px',
-  flexShrink: 0,
-  overflow: 'auto',
-} as const
-
-const middle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '8px',
-  flex: '1',
-  minWidth: 0,
-} as const
-
-const paint = { flex: '1', minHeight: 0, display: 'flex' } as const

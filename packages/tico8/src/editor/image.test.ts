@@ -5,6 +5,7 @@ import {
   blankImage,
   cloneImage,
   createHistory,
+  frameAt,
   openSheet,
   resizeImage,
   toRgba,
@@ -200,4 +201,22 @@ describe('createHistory', () => {
     expect(history.canRedo).toBe(false)
     expect(history.redo(image('3'))).toBeUndefined()
   })
+})
+
+it('counts frames across then down', () => {
+  const doc = {
+    info: {
+      file: 'a.png',
+      name: 'a',
+      url: '/a.png',
+      cellWidth: 8,
+      cellHeight: 8,
+    },
+    image: blankImage({ width: 32, height: 16 }),
+    colors: [],
+    paletteSize: 0,
+  }
+  expect(frameAt(doc, { x: 0, y: 0 })).toBe(0)
+  expect(frameAt(doc, { x: 31, y: 7 })).toBe(3)
+  expect(frameAt(doc, { x: 8, y: 8 })).toBe(5)
 })
