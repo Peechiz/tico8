@@ -28,17 +28,21 @@ Slices whose "needs" are all `done` can run in parallel.
 | 19 | [Input tester](19-input-tester.md) | 12 | small | todo | The controls screen lights up each row while its button is held |
 | 20 | [Symbol codes](20-symbol-codes.md) | 04, 11 | small | todo | `:a:` and `:heart:` in a string drawn as Ⓐ and ♥ |
 | 21 | [Sprite editor look](21-sprite-editor-look.md) | 14 | large | done | The sprite editor in the console's own colours and font, usable beside the game |
-| 22 | [Port friction](22-port-friction.md) | 07, 08 | medium | todo | A game of rooms on one map, with no room clipping or maths helpers of its own |
+| 22 | [Port friction](22-port-friction.md) | 07, 08 | medium | doing | A game of rooms on one map, with no room clipping or pixel stepping of its own |
+| 23 | [Namespaces](23-namespaces.md) | 22 | medium | todo | A game that imports a few namespaces instead of a name per function |
+| 24 | [Synth](24-synth.md) | 09, 13 | medium | todo | Jump and coin effects made from a few numbers in a text file, edited live |
+| 25 | [Export settings](25-export-settings.md) | 13, 22 | small | todo | An exported page with wav sounds transcoded to a fraction of their size |
+| 26 | [Cart import](26-cart-import.md) | 07, 22 | medium | todo | `tico8 import` turns a Pico-8 cart into sprites, flags and a map that run |
 
 ## Lanes after slice 02
 
 - Drawing: 03, 04, 08
 - Input: 05, 06
 - World: 07, 22
-- Sound and storage: 09, 10
+- Sound and storage: 09, 10, 24
 - UI: 11, 12, 19, 20
-- Shipping: 13, 16, 17
-- Tooling: 18
+- Shipping: 13, 16, 17, 25
+- Tooling: 18, 23, 26
 - Editors: 14, 15, 21
 
 Export (13) packs every asset type that exists when it is built. A slice that

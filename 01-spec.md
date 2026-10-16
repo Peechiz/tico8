@@ -257,6 +257,14 @@ if (input.a.pressed) {
   with a flag, which is how a game is stopped by walls. It only answers yes
   or no: moving and stopping are the game's own code, built from small
   pieces. Nothing like Godot's move-and-slide is built in.
+- **A view of part of a layer:** `layer.area(rect)` is a layer over the
+  cells a rectangle in pixels covers, grown to whole cells, counted from
+  its top left. Drawing it draws only that area; `tile`, `tileAt`,
+  `overlaps` and `tiles` see only that area, and outside it reads as empty;
+  `set` writes to the layer under it. A map of rooms, one screen each, draws
+  and collides one room with `world.ground.area(room)`.
+- **`LayerOf<typeof world>`** names a layer of a map, for a function that
+  takes one.
 - **A map and its layers know their size:** `columns` and `rows` in cells,
   `width` and `height` in pixels. A layer or a flag cannot take one of
   those names, or a tile's own (`frame`, `x`, `y`, `column`, `row`).
@@ -321,6 +329,8 @@ const [start] = room1.markers.tiles('spawn')
   pad button, a keyboard key, a mouse button, or a list of them. A pad
   button brings its default key with it. Keys are named as the browser
   names them, by place on the keyboard: `'Space'`, `'KeyK'`.
+  A key event with no `code`, as some test drivers send, is read by its
+  `key` as the place it has on a US keyboard.
 - **Action names are typed by inference.** `defineConfig` hands back the
   config with the game's `input` on it; the config file exports that and
   the game imports it from there. Nothing is generated. A game that
@@ -430,6 +440,12 @@ export function draw() {
 - **The maths is functions on `vec`:** `add`, `sub`, `scale`, `len`,
   `distance`, `normalize`, each returning a new value, and `move`, which adds
   in place.
+
+- **`vec.step(pos, vel, blocked)` moves in whole pixels,** x then y, one
+  pixel at a time, asking `blocked(at)` at each floored position. On a hit
+  `pos` stops flush on that axis and loses its fraction; otherwise it keeps
+  the fraction for the next step. It returns `{ x, y }`, which axes hit.
+  What a hit means (stop, bounce) is the game's.
 
 ```ts
 const player = { pos: vec(20, 60), vel: vec(1, 0) }
@@ -806,6 +822,9 @@ export function pause() {
 - **Assets go in as data URLs.** Each sheet and sound file becomes a
   base64 `data:` URL in the code, so the loaders fetch them as they do in
   dev. Maps and flags are already part of the code.
+- **It warns about size.** After the page's size it lists the largest
+  assets, and names each wav with its size: an ogg or mp3 is about a tenth
+  of it.
 - **It type-checks first** and stops on an error; `--no-check` skips the
   check. TypeScript comes with tico8. A `tsconfig.json` in the project
   folder is used when there is one, tico8's own settings otherwise (one
