@@ -17,8 +17,11 @@ export interface CheckResult {
 
 const require = createRequire(import.meta.url)
 
-/** tico8's settings, as the workspace's root `tsconfig.json`. */
-const SETTINGS = [
+/**
+ * tico8's settings as `tsc` flags: `tsconfig.game.json`, which projects
+ * extend as `tico8/tsconfig`, for a project without a `tsconfig.json`.
+ */
+export const SETTINGS = [
   '--target',
   'ES2023',
   '--lib',
@@ -29,6 +32,7 @@ const SETTINGS = [
   'bundler',
   '--strict',
   '--noUncheckedIndexedAccess',
+  '--noEmit',
   '--jsx',
   'react-jsx',
   '--jsxImportSource',
@@ -38,7 +42,7 @@ const SETTINGS = [
   '--erasableSyntaxOnly',
   '--skipLibCheck',
   '--types',
-  '',
+  'tico8/client',
 ]
 
 /**
@@ -51,7 +55,7 @@ export async function typeCheck({ root }: CheckOptions): Promise<CheckResult> {
     'bin',
     'tsc',
   )
-  const args = [tsc, '--noEmit', '--pretty', ...projectArgs(root)]
+  const args = [tsc, '--pretty', ...projectArgs(root)]
   const { code, output } = await run(args, root)
   const counted = output.replace(ANSI, '').match(/\berror TS\d+:/g)?.length ?? 0
   return { errors: code === 0 ? counted : Math.max(counted, 1), output }
@@ -59,18 +63,12 @@ export async function typeCheck({ root }: CheckOptions): Promise<CheckResult> {
 
 function projectArgs(root: string): string[] {
   const config = join(root, 'tsconfig.json')
-  if (existsSync(config)) return ['-p', config]
+  if (existsSync(config)) return ['-p', config, '--noEmit']
   const main = ['main.tsx', 'main.ts'].find((name) =>
     existsSync(join(root, name)),
   )
   if (!main) throw new Error(`No main.tsx or main.ts in ${root}`)
-  // Engine source uses `import.meta.hot`. Vite's client types come from
-  // tico8's own Vite, which a pnpm project cannot resolve from its folder.
-  const viteClient = join(
-    dirname(require.resolve('vite/package.json')),
-    'client.d.ts',
-  )
-  return ['--ignoreConfig', ...SETTINGS, main, viteClient]
+  return ['--ignoreConfig', ...SETTINGS, main]
 }
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: matches terminal colour codes

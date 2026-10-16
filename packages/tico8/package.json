@@ -13,10 +13,16 @@
     "./assets": "./src/assets/index.ts",
     "./ui": "./src/ui/index.ts",
     "./ui/jsx-runtime": "./src/ui/jsx-runtime.ts",
-    "./ui/jsx-dev-runtime": "./src/ui/jsx-dev-runtime.ts"
+    "./ui/jsx-dev-runtime": "./src/ui/jsx-dev-runtime.ts",
+    "./tsconfig": "./tsconfig.game.json",
+    "./client": {
+      "types": "./client.d.ts"
+    }
   },
   "files": [
-    "dist"
+    "dist",
+    "client.d.ts",
+    "tsconfig.game.json"
   ],
   "scripts": {
     "build": "tsdown"
@@ -53,6 +59,10 @@
       "./ui/jsx-dev-runtime": {
         "types": "./dist/ui/jsx-dev-runtime.d.ts",
         "default": "./dist/ui/jsx-dev-runtime.js"
+      },
+      "./tsconfig": "./tsconfig.game.json",
+      "./client": {
+        "types": "./client.d.ts"
       }
     }
   },

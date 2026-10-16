@@ -68,9 +68,12 @@ it('keeps import.meta.hot, the font file and the cli shebang', async () => {
 
 it('writes declarations for every entry point, importing .js files', async () => {
   const manifest = JSON.parse(await readFile(join(pkg, 'package.json'), 'utf8'))
-  const exports: Record<string, { types: string }> =
+  const exports: Record<string, string | { types?: string }> =
     manifest.publishConfig.exports
-  for (const { types } of Object.values(exports)) {
+  for (const entry of Object.values(exports)) {
+    // `./tsconfig` and `./client` ship as they are, outside dist/.
+    const types = typeof entry === 'string' ? undefined : entry.types
+    if (!types?.startsWith('./dist/')) continue
     const file = join(out, types.replace(/^\.\/dist\//, ''))
     expect(existsSync(file), types).toBe(true)
   }

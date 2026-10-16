@@ -1,18 +1,6 @@
 {
+  "extends": "./packages/tico8/tsconfig.game.json",
   "compilerOptions": {
-    "target": "ES2023",
-    "lib": ["ES2023", "DOM"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "tico8/ui",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "erasableSyntaxOnly": true,
-    "skipLibCheck": true,
     "types": ["node", "vite/client"]
   },
   "include": ["packages/*/src", "examples"],
