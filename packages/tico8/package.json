@@ -15,9 +15,53 @@
     "./ui/jsx-runtime": "./src/ui/jsx-runtime.ts",
     "./ui/jsx-dev-runtime": "./src/ui/jsx-dev-runtime.ts"
   },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown"
+  },
+  "publishConfig": {
+    "bin": {
+      "tico8": "./dist/cli.js"
+    },
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./config": {
+        "types": "./dist/config.d.ts",
+        "default": "./dist/config.js"
+      },
+      "./run": {
+        "types": "./dist/run.d.ts",
+        "default": "./dist/run.js"
+      },
+      "./assets": {
+        "types": "./dist/assets/index.d.ts",
+        "default": "./dist/assets/index.js"
+      },
+      "./ui": {
+        "types": "./dist/ui/index.d.ts",
+        "default": "./dist/ui/index.js"
+      },
+      "./ui/jsx-runtime": {
+        "types": "./dist/ui/jsx-runtime.d.ts",
+        "default": "./dist/ui/jsx-runtime.js"
+      },
+      "./ui/jsx-dev-runtime": {
+        "types": "./dist/ui/jsx-dev-runtime.d.ts",
+        "default": "./dist/ui/jsx-dev-runtime.js"
+      }
+    }
+  },
   "dependencies": {
     "preact": "^11.0.1",
-    "vite": "^8.3.4",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4"
+  },
+  "devDependencies": {
+    "tsdown": "0.23.1"
   }
 }

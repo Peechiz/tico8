@@ -1,42 +1,87 @@
 # 16 — Package build
 
-Stub. Detail the tasks before starting (see `../AGENTS.md`, step 2).
+tico8 packed into a tarball that runs from `node_modules`, while the
+workspace keeps running its TypeScript source.
 
 ## Demo
 
-The newest example copied to a folder outside the workspace, with tico8
-installed from a packed tarball, runs with `tico8 dev` and looks the same
-as it does from source.
+`examples/16-package-build`, copied to a folder outside the workspace, with
+tico8 installed from a packed tarball, runs with `tico8 dev` and looks the
+same as it does from source.
 
 ## Spec
 
-`01-spec.md`: Platform, Name. `00-outline.md`: step 2, "Tooling".
+`01-spec.md`: Platform (the "Package" row), Name. `00-outline.md`: step 2,
+"Tooling".
 
-Today the package's `exports` and `bin` point at TypeScript source. That
-works in this workspace, but Node will not strip types from files under
-`node_modules`, so an installed copy cannot run.
+Node will not strip types from files under `node_modules`, so the packed
+copy must be JavaScript. `pnpm pack` applies `publishConfig`, which points
+`exports` and `bin` at `dist/`; the workspace's own fields stay on `src/`.
 
-## Decide first
+## Tasks
 
-- Whether the browser side ships built, or as source for the game's own
-  Vite to compile.
-- Whether the workspace keeps running from source during development, with
-  the build used only for packing.
-
-## Task areas
-
-- tsdown set up for the package: the CLI and Vite plugin for Node, the
-  engine for the browser, and declaration files
-- `exports`, `bin` and `files` in `package.json` pointing at the build
-- `src/project.ts` kept a module of its own in the build, since the dev
-  tool serves the project's config in its place by path
-- `import.meta.hot` in the engine surviving the build
-- A check that packs the package and runs an example against the tarball
+- [x] **1. Contract** *(contract)*. `packages/tico8/package.json`: `files`
+  is `["dist"]`; `publishConfig.exports` gives each entry point a `types`
+  and a `default` under `dist/` (`./src/ui/index.ts` becomes
+  `./dist/ui/index.js` and `./dist/ui/index.d.ts`); `publishConfig.bin` is
+  `./dist/cli.js`; the `build` script runs tsdown, a dev dependency.
+  The build layout follows: `dist/` mirrors `src/` one module per file,
+  `.ts`/`.tsx` becoming `.js`.
+  Owns: `packages/tico8/package.json`. Waits on: none.
+- [ ] **2. Build.** tsdown set up for the package, unbundled, so every
+  non-test source file under `src/` becomes its own module in `dist/` and
+  `dist/project.js` stays a module of its own. Engine JSX compiles through
+  `tico8/ui`. `vite`, `typescript`, `preact` and `tico8` itself stay
+  imports. `import.meta.hot` and `new URL(..., import.meta.url)` come
+  through untouched, and `ui/tico8.otf` is copied beside `dist/ui/font.js`.
+  `dist/cli.js` starts with a `#!/usr/bin/env node` line. Declaration files
+  for every entry point, with relative imports ending `.js`; if tsdown
+  cannot drive TypeScript 7 for them, `tsc --emitDeclarationOnly` with
+  `rewriteRelativeImportExtensions` in the build script instead.
+  Test: builds into a temp folder, imports the built `index.js`, draws with
+  it and compares the pixel buffer to a text picture; checks that
+  `project.js`, `assets/sheets.js` (still reading `import.meta.hot`),
+  `ui/tico8.otf` and a `.d.ts` per entry point are there.
+  Owns: `packages/tico8/tsdown.config.ts`, `packages/tico8/src/build.test.ts`,
+  and `packages/tico8/tsconfig.build.json` if one is needed. Waits on: 1.
+- [ ] **3. Paths that name source files.** The Node side names two engine
+  files by path: `project.ts` (served in the project config's place) and
+  `editor/main.tsx` (the dev page's module). Built, they are `project.js`
+  and `editor/main.js`. A helper finds a module by its source path,
+  whichever of source or build sits beside the caller, and both places use
+  it; `isProjectModule` matches `project.js` as well as `project.ts`.
+  Owns: `src/module-path.ts` and its test, `src/vite.ts`,
+  `src/vite/config.ts`, their tests. Waits on: 1.
+- [ ] **4. Pack check.** `pnpm pack:check` at the root: builds the package,
+  packs it with `pnpm pack`, copies `examples/16-package-build` to a temp
+  folder outside the workspace, points its `tico8` dependency at the
+  tarball, installs with npm, then runs `tico8 export` (type-check on, so
+  the `.d.ts` files are used) and `tico8 dev` on a free port, fetching the
+  dev page, the game page, the entry module and the game's main module and
+  failing on anything but a 200. Leaves the folder in place and prints its
+  path with `--keep`, for the demo.
+  Owns: `scripts/pack-check.js`, the root `package.json`. Waits on: 1.
+- [x] **5. Example.** `examples/16-package-build`, a copy of
+  `examples/15-map-editor` with its name changed.
+  Owns: `examples/16-package-build/`. Waits on: none.
+- [ ] **6. Wire up.** Lead only. `pnpm pack:check` passes; run the demo
+  from the kept folder in the browser.
+  Waits on: 2, 3, 4, 5.
 
 ## Check
 
-To write with the tasks.
+- `pnpm test` passes, including the build test drawing with the built
+  engine.
+- `pnpm lint` and `pnpm typecheck` pass.
+- `pnpm pack:check` passes.
+- `pnpm dev` still runs from source, with no build first.
+- The demo, run from `pnpm pack:check --keep`'s folder, matches
+  `pnpm dev 16-package-build`.
 
 ## Decisions made
 
-None yet.
+- **Ships built:** JavaScript and `.d.ts` files in `dist/`, one module per
+  source file, for Node and the browser alike.
+- **Workspace runs source:** `exports` and `bin` stay on `src/`;
+  `publishConfig` points them at `dist/` in the packed copy only. No watch
+  build during development.
