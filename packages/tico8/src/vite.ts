@@ -1,8 +1,8 @@
-import { existsSync, realpathSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { normalizePath, type Plugin } from 'vite'
 import { PAGE_STYLE } from './export/page.ts'
+import { modulePath } from './module-path.ts'
 import { assetsHmr } from './vite/assets-hmr.ts'
 import { config } from './vite/config.ts'
 import { files } from './vite/files.ts'
@@ -36,7 +36,7 @@ const shellId = '/@tico8/shell.js'
 
 /** The editors' code in the package, as Vite names a file. */
 const shellMain = normalizePath(
-  realpathSync(fileURLToPath(new URL('./editor/main.tsx', import.meta.url))),
+  modulePath(new URL('./editor/main.tsx', import.meta.url)),
 )
 
 /** A page that runs one module, in the style the export shares. */

@@ -121,6 +121,7 @@ describe('config', () => {
     )
     expect(isProjectModule('/game/project.ts')).toBe(false)
     expect(isProjectModule('/game/src/project.ts?v=1')).toBe(false)
+    expect(isProjectModule('/game/project.js')).toBe(false)
   })
 
   it('serves the project config in place of the engine module', async () => {

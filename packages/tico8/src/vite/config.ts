@@ -1,15 +1,16 @@
 import { existsSync, realpathSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { pathToFileURL } from 'node:url'
 import { normalizePath, type Plugin } from 'vite'
 import { CONFIG_FILE, type Config, resolveConfig } from '../config.ts'
+import { modulePath } from '../module-path.ts'
 
 /**
  * The engine module that stands for the project's config, as Vite names it:
  * the real path, since the package is reached through a link.
  */
 const projectModule = normalizePath(
-  realpathSync(fileURLToPath(new URL('../project.ts', import.meta.url))),
+  modulePath(new URL('../project.ts', import.meta.url)),
 )
 
 /** What the engine module becomes for a project that has a config. */
@@ -26,11 +27,16 @@ export class ConfigLoadError extends Error {
   }
 }
 
-/** Whether a module id is the engine's `project.ts`, whatever its query. */
+/**
+ * Whether a module id is the engine's `project.ts` (`project.js` once built),
+ * whatever its query.
+ */
 export function isProjectModule(id: string): boolean {
   const file = id.split('?')[0]!
   if (file === projectModule) return true
-  if (!file.endsWith('/project.ts')) return false
+  if (!file.endsWith('/project.ts') && !file.endsWith('/project.js')) {
+    return false
+  }
   try {
     return normalizePath(realpathSync(file)) === projectModule
   } catch {
