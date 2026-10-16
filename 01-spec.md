@@ -813,11 +813,39 @@ export function pause() {
 - **The page holds one module** inline, with the CSS and the UI font, so
   it runs from `file:`; the dev page and the exported one share a style.
 
+## New projects
+
+- **`npm create tico8 my-game`** makes a folder with a starter game in it:
+  `package.json`, `tsconfig.json`, `tico8.config.ts`, `main.ts`, one sprite
+  sheet and its `sprites.ts`, and a `.gitignore`. The game is a sprite moved
+  with the arrow keys.
+- **It installs**, with whichever package manager ran it (npm, pnpm, yarn or
+  bun), then prints the next step: `cd my-game` and `npm run dev` (or that
+  manager's own command). It does not run `git init`.
+- **With no folder name it asks for one** in the terminal. A folder that
+  exists and is not empty is written into only after a yes.
+- **The editor settings come from tico8:** the starter's `tsconfig.json` is
+  `{ "extends": "tico8/tsconfig" }`, so they move with the engine. `tico8
+  export` type-checks with that file.
+- **`create-tico8` and `tico8` share a version number,** and a project is
+  made depending on `^` that version.
+- **Prompts:** `Project name: (my-game)`; `<dir> is not empty. Write into
+  it anyway? (y/N)`. Without a terminal, either is an error naming what to
+  pass. A failed install keeps the project and prints the steps to run.
+- **Vite's client types** (CSS imports, `import.meta.hot`) come through
+  `tico8/client`, which the base config names in `types`, so they resolve
+  from tico8's folder under pnpm as well as npm.
+- **`pnpm create:check`** packs both packages, makes a project with the
+  packed `create-tico8` against the packed `tico8`, and exports and serves
+  it, then serves a copy with no config file.
+
 ## Name
 
 "tico8" is a working name. It is close to TIC-80, an existing fantasy console,
 in both sound and search results. Settle it before the first npm publish,
 since it ends up in the package name, import line, CLI command and config file.
+Kept through slice 17, which publishes nothing. On 2026-10-16 both `tico8`
+and `create-tico8` were free on npm.
 
 ## Tossed from Pico-8
 

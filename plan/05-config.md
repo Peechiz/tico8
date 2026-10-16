@@ -153,8 +153,7 @@ the new colours.
 ## Not checked
 
 - A real keyboard: key events were sent by script.
-- A project outside this repo. Its page may be refused the engine's
-  `project.ts` when it has no config file; this showed up in a temp project
-  and is left for the scaffold slice, which is the first to make one.
+- ~~A project outside this repo with no config file.~~ Checked in slice
+  17: `pnpm create:check` serves the engine's `project.js` to one.
 - What the page shows for a refused config, beyond the terminal's warning.
 - Windows paths.
