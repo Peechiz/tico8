@@ -754,6 +754,45 @@ export function pause() {
 - **Sheets:** New and Resize are dialogs; New shows the file and size it
   will write, Resize how many cells with art a shrink cuts.
 
+### Map editor
+
+- **View:** the whole map, fitted to its space at a whole scale, zoomed and
+  panned; lines mark each screen's worth of map. The zoom shows as a
+  percentage beside a Fit button. Scrolling, or a two-finger drag, pans; a
+  pinch, or Ctrl or ⌘ with the wheel, zooms, a long pinch
+  going several steps.
+  The see-through checker is two squares to a tile. The tileset sits beside it
+  to pick tiles from.
+- **Tools:** brush, eraser, fill, rectangle (filled), pick tile, select with
+  move, copy and paste, undo and redo. They work on one layer, the current
+  one.
+- **Brush:** a click in the tileset picks a tile, a drag picks a block (a 2x2
+  moon), and every tool paints with the block as a pattern.
+- **Layers:** a list to choose the current layer, show and hide layers in the
+  editor (never in the file), add, rename, remove and reorder them.
+- **Maps:** a picker over the maps folder; a new map is made with a name, a
+  tileset, a size and its first layer, and a map is resized in whole cells.
+- **Flags:** the chosen tiles show a checkbox per flag of the tileset; flags
+  are added, renamed and removed there. One flag at a time can be shown,
+  tinting its tiles in the tileset and on the map.
+- **Rearranging tiles:** with Arrange on, dragging a tile in the tileset onto
+  another swaps the two: their pixels in the PNG, their flags, and their
+  numbers in every map on the tileset. One undo step.
+- **Saving:** each finished step writes the files it changed, as the sprite
+  editor does; a map or flags file changed by another tool is taken in as
+  one undoable step. A swap reads every map on the tileset first and is
+  cancelled whole if one cannot be read.
+- **Flags file:** a tileset's first flag makes one named after the sheet,
+  `tiles.png` giving `tiles.flags.json`.
+- **Names:** a layer or flag is letters and digits from a letter; a map's
+  name follows a sheet's and must make a name `maps.ts` can export. New
+  offers only 8x8 sheets as tilesets.
+- **Keys:** B, E, F, R, I and S pick the tools; `[` and `]` change layer;
+  `=`, `-` and `0` zoom and fit; space- or middle-drag pans; right- or
+  Alt-click picks; ? lists them all.
+- **Focus:** a press in an editor takes the keys back from the game beside
+  it, and each editor answers keys only while its tab shows.
+
 ## Export and sharing
 
 - `tico8 export` produces **one self-contained web page file** with code,
