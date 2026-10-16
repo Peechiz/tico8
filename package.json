@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "dev": "node scripts/dev.js",
     "pack:check": "node scripts/pack-check.js",
+    "create:check": "node scripts/create-check.js",
     "lint": "biome check",
     "check": "biome check --write"
   },
