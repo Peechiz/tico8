@@ -1,0 +1,25 @@
+{
+  "name": "create-tico8",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "create-tico8": "./bin/create-tico8.js"
+  },
+  "files": [
+    "dist",
+    "template"
+  ],
+  "scripts": {
+    "build": "tsdown"
+  },
+  "publishConfig": {
+    "bin": {
+      "create-tico8": "./dist/cli.js"
+    }
+  },
+  "devDependencies": {
+    "tico8": "workspace:*",
+    "tsdown": "0.23.1"
+  }
+}
