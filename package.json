@@ -7,6 +7,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "dev": "node scripts/dev.js",
+    "pack:check": "node scripts/pack-check.js",
     "lint": "biome check",
     "check": "biome check --write"
   },
