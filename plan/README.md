@@ -28,12 +28,13 @@ Slices whose "needs" are all `done` can run in parallel.
 | 19 | [Input tester](19-input-tester.md) | 12 | small | todo | The controls screen lights up each row while its button is held |
 | 20 | [Symbol codes](20-symbol-codes.md) | 04, 11 | small | todo | `:a:` and `:heart:` in a string drawn as Ⓐ and ♥ |
 | 21 | [Sprite editor look](21-sprite-editor-look.md) | 14 | large | done | The sprite editor in the console's own colours and font, usable beside the game |
+| 22 | [Port friction](22-port-friction.md) | 07, 08 | medium | todo | A game of rooms on one map, with no room clipping or maths helpers of its own |
 
 ## Lanes after slice 02
 
 - Drawing: 03, 04, 08
 - Input: 05, 06
-- World: 07
+- World: 07, 22
 - Sound and storage: 09, 10
 - UI: 11, 12, 19, 20
 - Shipping: 13, 16, 17
