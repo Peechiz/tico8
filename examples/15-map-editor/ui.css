@@ -1,0 +1,140 @@
+/* One CSS pixel is one game pixel, and the pixel font is 6px. */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  justify-content: center;
+  gap: 8px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+  font: inherit;
+}
+
+/* The font doubled: each font pixel is 2x2 game pixels. */
+h1 {
+  font-size: 12px;
+  line-height: 12px;
+  color: var(--yellow);
+}
+
+.panel h2 {
+  color: var(--yellow);
+}
+
+b {
+  font-weight: inherit;
+  color: var(--yellow);
+}
+
+.hud {
+  align-self: stretch;
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 2px 1px;
+  background: var(--black);
+}
+
+.hud .best {
+  color: var(--yellow);
+}
+
+.panel {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--black);
+  border: 1px solid var(--darkGrey);
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+/* The built-in pause menu is styled like the game's own menus: only the
+   highlighted button is yellow. */
+.tico8-pause-menu,
+.tico8-options {
+  align-items: flex-start;
+}
+
+.menu button,
+.tico8-pause button {
+  color: var(--lightGrey);
+  outline: none;
+}
+
+/*
+ * The highlight: a yellow star before the focused button, twinkling to a ✧
+ * and back. Its box is the ★'s 6px advance, then a space's 4px, so the
+ * text never shifts.
+ */
+.menu button::before,
+.tico8-pause button::before {
+  content: "★";
+  display: inline-block;
+  width: 6px;
+  margin-right: 4px;
+  text-align: center;
+  visibility: hidden;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    content: "★";
+  }
+  50% {
+    content: "✧";
+  }
+}
+
+.menu button:focus,
+.tico8-pause button:focus {
+  color: var(--yellow);
+}
+
+.menu button:focus::before,
+.tico8-pause button:focus::before {
+  visibility: visible;
+  animation: twinkle 2s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu button:focus::before,
+  .tico8-pause button:focus::before {
+    animation: none;
+  }
+}
+
+.hint {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 8px;
+  max-width: 100px;
+  color: var(--lightGrey);
+}
+
+.note {
+  color: var(--darkGrey);
+}
+
+.note.cleared {
+  color: var(--green);
+}
