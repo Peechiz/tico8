@@ -120,6 +120,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/tico8
 
+  examples/15-map-editor:
+    dependencies:
+      tico8:
+        specifier: workspace:*
+        version: link:../../packages/tico8
+
   examples/21-editor-look:
     dependencies:
       tico8:
