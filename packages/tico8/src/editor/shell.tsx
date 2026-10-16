@@ -163,7 +163,17 @@ export function Shell({ gameUrl, tabs }: ShellProps) {
             onPointerCancel={() => setDragging(false)}
           />
         )}
-        <div class="tico8-shell-editors" hidden={onGame}>
+        <div
+          class="tico8-shell-editors"
+          hidden={onGame}
+          // A canvas that cancels its press keeps the focus where it was,
+          // which may be the game beside it: take it back.
+          onPointerDownCapture={() => {
+            if (document.activeElement !== frame.current) return
+            frame.current?.blur()
+            window.focus()
+          }}
+        >
           {tabs.map((t) => (
             <div
               class="tico8-shell-editor"

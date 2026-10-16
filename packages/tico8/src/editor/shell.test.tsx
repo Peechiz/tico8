@@ -157,3 +157,18 @@ it('loads 40 when the saved choice has no width', () => {
   mount()
   expect(divider().getAttribute('aria-valuenow')).toBe('40')
 })
+
+it('takes focus back from the game on a press in an editor', () => {
+  mount()
+  click('Split')
+  click('Map')
+  act(() => frame().focus())
+  expect(document.activeElement).toBe(frame())
+  const blur = vi.spyOn(frame(), 'blur')
+  act(() => {
+    root
+      .querySelector('#map')!
+      .dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+  })
+  expect(blur).toHaveBeenCalled()
+})

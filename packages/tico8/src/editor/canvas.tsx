@@ -77,13 +77,17 @@ function isDim(color: Rgb | undefined): boolean {
   return 0.299 * r + 0.587 * g + 0.114 * b < DIM
 }
 
-/** One faint checker over `width` by `height` screen pixels, for see-through. */
+/**
+ * One faint checker over `width` by `height` screen pixels, for see-through,
+ * in squares of `size` screen pixels.
+ */
 export function paintChecker(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
+  size: number = CHECKER.size,
 ) {
-  const { size, light, dark } = CHECKER
+  const { light, dark } = CHECKER
   ctx.fillStyle = dark
   ctx.fillRect(0, 0, width, height)
   ctx.fillStyle = light

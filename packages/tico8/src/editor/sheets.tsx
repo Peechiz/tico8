@@ -216,7 +216,7 @@ export function SheetTabs(props: EditorProps) {
  * The dialog's backdrop: a click on it, or Escape anywhere in it, closes.
  * Keys stay in the dialog so the editor's shortcuts do not fire.
  */
-function Backdrop({
+export function Backdrop({
   onClose,
   children,
 }: {

@@ -259,7 +259,7 @@ export function maps(): Plugin {
 }
 
 /** Why a name cannot be exported from the generated file, if it cannot. */
-function nameProblem(name: string): string | undefined {
+export function nameProblem(name: string): string | undefined {
   if (name === '') return 'it has no letters to make a name from'
   if (/^\p{N}/u.test(name)) {
     return `the name "${name}" starts with a digit, so it cannot be imported`

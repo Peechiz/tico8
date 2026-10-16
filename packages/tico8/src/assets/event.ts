@@ -1,3 +1,4 @@
+import type { MapInfo } from '../editor/map-types.ts'
 import type { SheetInfo } from '../editor/types.ts'
 
 /** Sent by the dev server to the page when a sheet's PNG has new content. */
@@ -42,4 +43,12 @@ export const SHEETS_LISTED = 'tico8:sheets-listed'
 export interface SheetsListed {
   /** Every sheet in the folder, sorted by name. */
   sheets: SheetInfo[]
+}
+
+/** Sent by the dev server to the page when the list of maps changes. */
+export const MAPS_LISTED = 'tico8:maps-listed'
+
+export interface MapsListed {
+  /** Every map in the folder, sorted by name. */
+  maps: MapInfo[]
 }

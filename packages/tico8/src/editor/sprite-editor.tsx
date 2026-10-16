@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { Canvas } from './canvas.tsx'
 import {
   PalettePanel,
@@ -57,6 +57,7 @@ export function SpriteEditor({ editor }: { editor: Editor }) {
   const [state, setState] = useState(editor.get())
   const [hover, setHover] = useState<Hover | undefined>()
   const [help, setHelp] = useState(false)
+  const root = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setState(editor.get())
@@ -65,6 +66,8 @@ export function SpriteEditor({ editor }: { editor: Editor }) {
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
+      // Every editor tab stays mounted, hidden while another shows.
+      if (root.current?.closest('[hidden]')) return
       if (typing(event.target)) return
       if (event.key === '?') {
         event.preventDefault()
@@ -81,7 +84,7 @@ export function SpriteEditor({ editor }: { editor: Editor }) {
 
   const props = { editor, state }
   return (
-    <div class="t8e t8e-sprites-box">
+    <div class="t8e t8e-sprites-box" ref={root}>
       <div class="t8e-sprites">
         <div class="tabs">
           <SheetTabs {...props} />

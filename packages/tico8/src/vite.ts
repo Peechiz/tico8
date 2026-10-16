@@ -6,6 +6,7 @@ import { PAGE_STYLE } from './export/page.ts'
 import { assetsHmr } from './vite/assets-hmr.ts'
 import { config } from './vite/config.ts'
 import { files } from './vite/files.ts'
+import { mapFiles } from './vite/map-files.ts'
 import { maps } from './vite/maps.ts'
 import { project } from './vite/project.ts'
 import { sounds } from './vite/sounds.ts'
@@ -95,6 +96,7 @@ export function tico8(): Plugin[] {
     sounds(),
     assetsHmr(),
     files(),
+    mapFiles(),
   ]
 }
 
