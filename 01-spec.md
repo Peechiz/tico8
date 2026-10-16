@@ -55,7 +55,7 @@ free to differ.
 | Engine access | Imported from `tico8`, like any library. No globals. |
 | Boundaries | tico8 owns the screen, input, sound and save storage. Reaching into the browser directly is unsupported, apart from the UI layer below. |
 | Limits | None beyond screen and palette: no token limit, no size cap, no per-frame CPU budget. Export reports the file size as information. |
-| Package | Ships built: JavaScript and `.d.ts` files in `dist/`, one module per source file, for Node (CLI, Vite plugin) and the browser (engine) alike. The workspace runs the TypeScript source; `publishConfig` points `exports` and `bin` at `dist/` only in the packed copy. |
+| Package | Ships built: JavaScript and `.d.ts` files in `dist/`, one module per source file, for Node (CLI, Vite plugin) and the browser (engine) alike. The workspace runs the TypeScript source; `publishConfig` points `exports` and `bin` at `dist/` only in the packed copy. Every module has a `.d.ts`. `pnpm pack:check` installs the tarball into a copy of an example outside the workspace and runs it. |
 
 ## Project config
 

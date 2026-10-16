@@ -22,7 +22,7 @@ Slices whose "needs" are all `done` can run in parallel.
 | 13 | [Export](13-export.md) | 02 | medium | done | One HTML file that plays the demo on double-click |
 | 14 | [Sprite editor](14-sprite-editor.md) | 02 | large | done | A Sprites tab that paints into the PNG the game is showing |
 | 15 | [Map editor](15-map-editor.md) | 07, 14 | large | done | A Map tab that edits the room the game is showing |
-| 16 | [Package build](16-package-build.md) | 05 | small | doing | The demo run from an installed copy of the package, not the workspace source |
+| 16 | [Package build](16-package-build.md) | 05 | small | done | The demo run from an installed copy of the package, not the workspace source |
 | 17 | [Scaffold](17-scaffold.md) | 05, 16 | small | todo | `npm create tico8` makes a project that runs |
 | 18 | [CLI info commands](18-cli-info.md) | 05 | small | todo | `tico8 palette` prints the palette with colour swatches in the terminal |
 | 19 | [Input tester](19-input-tester.md) | 12 | small | todo | The controls screen lights up each row while its button is held |

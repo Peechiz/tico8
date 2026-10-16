@@ -28,7 +28,7 @@ copy must be JavaScript. `pnpm pack` applies `publishConfig`, which points
   The build layout follows: `dist/` mirrors `src/` one module per file,
   `.ts`/`.tsx` becoming `.js`.
   Owns: `packages/tico8/package.json`. Waits on: none.
-- [ ] **2. Build.** tsdown set up for the package, unbundled, so every
+- [x] **2. Build.** tsdown set up for the package, unbundled, so every
   non-test source file under `src/` becomes its own module in `dist/` and
   `dist/project.js` stays a module of its own. Engine JSX compiles through
   `tico8/ui`. `vite`, `typescript`, `preact` and `tico8` itself stay
@@ -44,7 +44,7 @@ copy must be JavaScript. `pnpm pack` applies `publishConfig`, which points
   `ui/tico8.otf` and a `.d.ts` per entry point are there.
   Owns: `packages/tico8/tsdown.config.ts`, `packages/tico8/src/build.test.ts`,
   and `packages/tico8/tsconfig.build.json` if one is needed. Waits on: 1.
-- [ ] **3. Paths that name source files.** The Node side names two engine
+- [x] **3. Paths that name source files.** The Node side names two engine
   files by path: `project.ts` (served in the project config's place) and
   `editor/main.tsx` (the dev page's module). Built, they are `project.js`
   and `editor/main.js`. A helper finds a module by its source path,
@@ -52,7 +52,7 @@ copy must be JavaScript. `pnpm pack` applies `publishConfig`, which points
   it; `isProjectModule` matches `project.js` as well as `project.ts`.
   Owns: `src/module-path.ts` and its test, `src/vite.ts`,
   `src/vite/config.ts`, their tests. Waits on: 1.
-- [ ] **4. Pack check.** `pnpm pack:check` at the root: builds the package,
+- [x] **4. Pack check.** `pnpm pack:check` at the root: builds the package,
   packs it with `pnpm pack`, copies `examples/16-package-build` to a temp
   folder outside the workspace, points its `tico8` dependency at the
   tarball, installs with npm, then runs `tico8 export` (type-check on, so
@@ -64,7 +64,7 @@ copy must be JavaScript. `pnpm pack` applies `publishConfig`, which points
 - [x] **5. Example.** `examples/16-package-build`, a copy of
   `examples/15-map-editor` with its name changed.
   Owns: `examples/16-package-build/`. Waits on: none.
-- [ ] **6. Wire up.** Lead only. `pnpm pack:check` passes; run the demo
+- [x] **6. Wire up.** Lead only. `pnpm pack:check` passes; run the demo
   from the kept folder in the browser.
   Waits on: 2, 3, 4, 5.
 
@@ -85,3 +85,12 @@ copy must be JavaScript. `pnpm pack` applies `publishConfig`, which points
 - **Workspace runs source:** `exports` and `bin` stay on `src/`;
   `publishConfig` points them at `dist/` in the packed copy only. No watch
   build during development.
+- **Declarations:** tsdown writes them itself (it drives TypeScript 7's Go
+  compiler), one `.d.ts` per module, not only per entry point.
+- **Left out of `dist/`:** tests, `src/testing.ts` (only tests use it) and
+  the export fixtures.
+- **Finding engine files by path:** `modulePath` takes the source path and
+  falls back to the `.js` beside it; source wins when both exist.
+- **Pack check:** installs the tarball with npm, as a user would, runs
+  `tico8 export` with the type-check, and fetches the dev pages and modules.
+  Anything the dev server writes to stderr fails it.
