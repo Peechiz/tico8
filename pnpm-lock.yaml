@@ -132,11 +132,26 @@ importers:
         specifier: workspace:*
         version: link:../../packages/tico8
 
+  examples/17-scaffold:
+    dependencies:
+      tico8:
+        specifier: workspace:*
+        version: link:../../packages/tico8
+
   examples/21-editor-look:
     dependencies:
       tico8:
         specifier: workspace:*
         version: link:../../packages/tico8
+
+  packages/create-tico8:
+    devDependencies:
+      tico8:
+        specifier: workspace:*
+        version: link:../tico8
+      tsdown:
+        specifier: 0.23.1
+        version: 0.23.1(typescript@7.0.2)
 
   packages/tico8:
     dependencies:
