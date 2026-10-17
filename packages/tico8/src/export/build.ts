@@ -30,12 +30,17 @@ const entry = '/@tico8/entry.js'
 
 /** Build a project into one module and its CSS, written nowhere. */
 export async function buildGame({ root }: BuildOptions): Promise<BuiltGame> {
+  // By path: a module transformed twice counts its files once.
+  const inlined = new Map<string, number>()
   const result = await build({
     root: resolve(root),
     configFile: false,
     envDir: false,
     logLevel: 'warn',
-    plugins: [...tico8(), inlineAssets()],
+    plugins: [
+      ...tico8(),
+      inlineAssets({ onInline: (path, bytes) => inlined.set(path, bytes) }),
+    ],
     build: {
       write: false,
       emptyOutDir: false,
@@ -87,7 +92,7 @@ export async function buildGame({ root }: BuildOptions): Promise<BuiltGame> {
   }
 
   return {
-    assets: [],
+    assets: [...inlined].map(([path, bytes]) => ({ path, bytes })),
     js: chunks[0].code,
     css: css
       .map((file) =>

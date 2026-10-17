@@ -15,6 +15,15 @@ it('inlines the sheet and the sound as data URLs', () => {
   expect(game.js).toContain('data:audio/')
 })
 
+it('lists each file it inlined once, with its size', () => {
+  const byPath = (a: { path: string }, b: { path: string }) =>
+    a.path.localeCompare(b.path)
+  expect([...game.assets].sort(byPath)).toEqual([
+    { path: 'sounds/blip.wav', bytes: 108 },
+    { path: 'sprites/dot.png', bytes: 81 },
+  ])
+})
+
 it('leaves no sheet or sound address behind', () => {
   expect(game.js).not.toMatch(/["'`]\/sprites\//)
   expect(game.js).not.toMatch(/["'`]\/sounds\//)

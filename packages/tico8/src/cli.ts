@@ -49,7 +49,7 @@ async function exportCommand(args: string[]) {
   })
   const root = process.cwd()
   try {
-    const { path, bytes } = await exportGame({
+    const { path, bytes, assets, warnings } = await exportGame({
       root,
       out: values.out,
       check: !values['no-check'],
@@ -57,6 +57,10 @@ async function exportCommand(args: string[]) {
     const shown = relative(root, path)
     const where = shown.startsWith('..') ? path : shown
     console.log(`Wrote ${where} (${formatSize(bytes)})`)
+    for (const asset of assets.slice(0, 5)) {
+      console.log(`  ${asset.path}  ${formatSize(asset.bytes)}`)
+    }
+    for (const warning of warnings) console.warn(warning)
   } catch (error) {
     if (error instanceof TypeCheckError) console.error(error.output)
     throw error

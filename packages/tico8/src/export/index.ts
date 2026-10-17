@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, extname, join, resolve } from 'node:path'
 import { projectName } from '../vite/project.ts'
 import { buildGame, type InlinedAsset } from './build.ts'
 import { typeCheck } from './check.ts'
@@ -52,12 +52,31 @@ export async function exportGame(
     const { errors, output } = await typeCheck({ root })
     if (errors > 0) throw new TypeCheckError(errors, output)
   }
-  const { js, css } = await buildGame({ root })
+  const { js, css, assets } = await buildGame({ root })
   const html = exportPage({ title: name, js, css })
   const path = resolve(root, options.out ?? join('dist', `${name}.html`))
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, html)
-  return { path, bytes: Buffer.byteLength(html), assets: [], warnings: [] }
+  const largest = [...assets].sort(
+    (a, b) => b.bytes - a.bytes || a.path.localeCompare(b.path),
+  )
+  return {
+    path,
+    bytes: Buffer.byteLength(html),
+    assets: largest,
+    warnings: largest.filter(isWav).map(wavWarning),
+  }
+}
+
+function isWav({ path }: InlinedAsset): boolean {
+  return extname(path).toLowerCase() === '.wav'
+}
+
+function wavWarning({ path, bytes }: InlinedAsset): string {
+  return (
+    `${path} is ${formatSize(bytes)} of uncompressed audio: ` +
+    'an ogg or mp3 is about a tenth of that'
+  )
 }
 
 /** A size as people read it: `812 B`, `212.4 KB`, `1.3 MB`. */

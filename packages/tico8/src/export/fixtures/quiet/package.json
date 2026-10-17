@@ -1,0 +1,8 @@
+{
+  "name": "export-quiet",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "tico8": "workspace:*"
+  }
+}

@@ -23,11 +23,19 @@ export function dataUrl({ file, bytes }: DataUrlOptions): string {
   return `data:${type};base64,${Buffer.from(bytes).toString('base64')}`
 }
 
+export interface InlineAssetsOptions {
+  /**
+   * Called with each file inlined: its path from the project folder,
+   * `sounds/theme.wav`, and its size before encoding.
+   */
+  onInline?: (path: string, bytes: number) => void
+}
+
 /**
  * At build, swaps each sheet and sound address in the generated
  * `sprites.ts` and `sounds.ts` for a `data:` URL of the file.
  */
-export function inlineAssets(): Plugin {
+export function inlineAssets({ onInline }: InlineAssetsOptions = {}): Plugin {
   let root = ''
   return {
     name: 'tico8:inline-assets',
@@ -56,6 +64,7 @@ export function inlineAssets(): Plugin {
           } catch {
             throw new Error(`Cannot inline ${dir}/${file}: the file is missing`)
           }
+          onInline?.(`${dir}/${file}`, bytes.byteLength)
           return `'${dataUrl({ file, bytes })}'`
         }),
         map: null,

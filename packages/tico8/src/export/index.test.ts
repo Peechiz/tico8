@@ -6,6 +6,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { exportGame, formatSize } from './index.ts'
 
 const fixture = fileURLToPath(new URL('./fixtures/game', import.meta.url))
+const quiet = fileURLToPath(new URL('./fixtures/quiet', import.meta.url))
 const temp = mkdtempSync(join(tmpdir(), 'tico8-export-'))
 
 afterAll(() => rmSync(temp, { recursive: true, force: true }))
@@ -23,6 +24,37 @@ describe('exportGame', () => {
     expect(html).toContain('data:image/png;base64,')
     expect(html).toContain('.fixture-banner')
     expect(html).not.toMatch(/<script[^>]* src=/)
+  }, 60_000)
+
+  it('lists the assets largest first and warns about a wav', async () => {
+    const out = join(temp, 'loud.html')
+    const { assets, warnings } = await exportGame({
+      root: fixture,
+      out,
+      check: false,
+    })
+    expect(assets).toEqual([
+      { path: 'sounds/blip.wav', bytes: 108 },
+      { path: 'sprites/dot.png', bytes: 81 },
+    ])
+    expect(warnings).toEqual([
+      'sounds/blip.wav is 108 B of uncompressed audio: ' +
+        'an ogg or mp3 is about a tenth of that',
+    ])
+  }, 60_000)
+
+  it('has nothing to warn about without a wav', async () => {
+    const out = join(temp, 'quiet.html')
+    const { assets, warnings } = await exportGame({
+      root: quiet,
+      out,
+      check: false,
+    })
+    expect(assets).toEqual([
+      { path: 'sprites/dot.png', bytes: 81 },
+      { path: 'sounds/blip.ogg', bytes: 12 },
+    ])
+    expect(warnings).toEqual([])
   }, 60_000)
 })
 

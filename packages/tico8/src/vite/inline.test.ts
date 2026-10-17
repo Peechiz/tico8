@@ -24,8 +24,13 @@ function project(): string {
 }
 
 /** Run the plugin's transform hook the way Vite would. */
-function transform(root: string, code: string, id: string): string | undefined {
-  const plugin = inlineAssets() as unknown as {
+function transform(
+  root: string,
+  code: string,
+  id: string,
+  onInline?: (path: string, bytes: number) => void,
+): string | undefined {
+  const plugin = inlineAssets({ onInline }) as unknown as {
     configResolved: (config: ResolvedConfig) => void
     transform: (code: string, id: string) => { code: string } | undefined
   }
@@ -80,6 +85,26 @@ it('swaps sound addresses, with a query on the id', () => {
   expect(out).toContain("'data:audio/wav;base64,")
   expect(out).toContain("'data:audio/mpeg;base64,")
   expect(decoded(out)).toEqual([wav, mp3])
+})
+
+it('reports each file it inlines, by path from the project, with its size', () => {
+  const root = project()
+  writeFileSync(join(root, SOUNDS_DIR, 'big boss.wav'), Buffer.alloc(300))
+  writeFileSync(join(root, SOUNDS_DIR, 'tune.ogg'), Buffer.alloc(7))
+  const seen: [string, number][] = []
+  transform(
+    root,
+    renderSounds([
+      { name: 'bigBoss', file: 'big boss.wav' },
+      { name: 'tune', file: 'tune.ogg' },
+    ]),
+    join(root, SOUNDS_FILE),
+    (path, bytes) => seen.push([path, bytes]),
+  )
+  expect(seen).toEqual([
+    ['sounds/big boss.wav', 300],
+    ['sounds/tune.ogg', 7],
+  ])
 })
 
 it('handles a call the formatter broke over lines', () => {
