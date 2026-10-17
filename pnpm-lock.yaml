@@ -144,6 +144,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/tico8
 
+  examples/22-rooms:
+    dependencies:
+      tico8:
+        specifier: workspace:*
+        version: link:../../packages/tico8
+
   packages/create-tico8:
     devDependencies:
       tico8:

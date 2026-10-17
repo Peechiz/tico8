@@ -86,33 +86,33 @@ examples/22-rooms/                    the demo
   with their sizes and the warnings to print. Empty bodies that throw.
   Owns: `src/maps/types.ts`, the declarations in `src/vec.ts`,
   `src/export/index.ts` (types only). Waits on: none.
-- [ ] **2. Area views.** `layer.area(rect)` gives a layer over the cells the
+- [x] **2. Area views.** `layer.area(rect)` gives a layer over the cells the
   rectangle covers, grown to whole cells, counted from its top left:
   `columns`, `rows`, `width`, `height` are the area's; `draw`, `tile`,
   `tileAt`, `overlaps` and `tiles` see only the area, and outside it reads as
   empty; `set` writes to the layer under it. A view of a view works. A view
   stays live when the map file is swapped.
   Owns: `src/maps/layers.ts`, `src/maps/layers.test.ts`. Waits on: 1.
-- [ ] **3. Stepping.** `vec.step` moves `pos` by `vel`, x then y, one whole
+- [x] **3. Stepping.** `vec.step` moves `pos` by `vel`, x then y, one whole
   pixel at a time, asking `blocked` with the floored position at each pixel.
   On a hit it leaves `pos` on the last free whole pixel on that axis and
   reports it; otherwise `pos` keeps its fraction. Returns `{ x, y }`
   booleans. A step of less than a pixel asks nothing unless it crosses one.
   Owns: `src/vec.ts` (body), `src/vec.test.ts`. Waits on: 1.
-- [ ] **4. Export warning.** The build records each asset it inlines and its
+- [x] **4. Export warning.** The build records each asset it inlines and its
   size. `exportGame` returns them largest first, and a warning for each wav:
   its path, its size and that an ogg or mp3 is about a tenth of it. The CLI
   prints the page's size, then the largest assets, then the warnings.
   Owns: `src/export/build.ts`, `src/export/index.ts` (body),
   `src/export/*.test.ts`, `src/export/fixtures/`, `src/vite/inline.ts`,
   `src/cli.ts`. Waits on: 1.
-- [ ] **5. Key fallback.** A key event whose `code` is empty is read by
+- [x] **5. Key fallback.** A key event whose `code` is empty is read by
   `key` as the `code` it has on a US layout: letters, digits, space, arrows,
   Enter, Escape, Tab, Backspace and the modifiers. An event with a `code`
   is read as now.
   Owns: `src/input/keyboard.ts`, `src/input/keyboard.test.ts`.
   Waits on: none.
-- [ ] **6. Demo.** The game under "Demo": tileset, flags, `world.json` and
+- [x] **6. Demo.** The game under "Demo": tileset, flags, `world.json` and
   `main.ts`, with `sprites.ts` and `maps.ts` as the dev tool writes them.
   Owns: `examples/22-rooms/`, `pnpm-lock.yaml`. Waits on: 1.
 - [ ] **7. Wire up.** Lead only. `index.ts` exports `LayerOf`; a test that
@@ -172,6 +172,36 @@ examples/22-rooms/                    the demo
   `{ x, y }` booleans, exported beside `Vec`. `ExportResult` gained
   `assets` (each `InlinedAsset` a path and its bytes, largest first) and
   `warnings`, one line each; `BuiltGame` gained `assets`.
+- **Task 4: how assets are counted.** `inlineAssets({ onInline })` reports
+  each sheet and sound file it inlines, by path from the project and raw
+  size; `buildGame` keeps one per path. The UI font, inlined by Vite, is
+  not listed. Equal sizes sort by path.
+- **Task 4: every wav warns,** however small, one line each:
+  `sounds/music.wav is 10.8 MB of uncompressed audio: an ogg or mp3 is
+  about a tenth of that`. The CLI prints the top five assets under the
+  `Wrote` line, indented, then the warnings on stderr.
 - **Item 10: `key` when `code` is empty.** Read as the code it has on a US
   layout. Real keyboards always send a `code`, so players see no change;
   test drivers that send only `key` work.
+- **`vec.step` never asks about the pixel it starts on,** only each new one
+  it moves into. A body already inside a wall is not pushed out: moving
+  further in hits at once and it stays on its floored pixel.
+- **Task 5: key fallback.** An event with no `code` reads `key` as its
+  US-layout code: letters of either case, digits, space, arrows, Enter,
+  Escape, Tab, Backspace, the punctuation in `KEYS`, and `Shift`, `Control`,
+  `Alt` as their `...Left` key. `Meta` is not mapped, since `KEYS` has no
+  Meta key. Any other key with no code is ignored. The shortcut check uses
+  the resolved code.
+- **Area views share the layer's code.** A layer reads its cells through a
+  window (size, and where a cell of it is in the layer's cells); the whole
+  layer and each view are windows, a view's window asking its parent's, so
+  a view of a view stays inside the first. A view's size is fixed when made
+  and may reach past the layer, which reads as empty there.
+- **Demo rooms.** `world.json` is 32 by 32 cells: rooms A B over C D.
+  A and B join by a doorway, as do C and D; a hole in A's floor drops into
+  C, and in B's into D. C and D climb back up by crate ledges three cells
+  apart. The figure's position is room-local; past an edge (by its middle)
+  the room moves over and the position moves back by a room.
+- **Demo tileset and controls.** Tiles, flags and the figure are copied
+  from `08-animation`. Arrows walk, A jumps (let go early for a short hop);
+  gravity 0.25, jump 4.5, fall at most 4 pixels an update.
