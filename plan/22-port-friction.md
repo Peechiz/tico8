@@ -80,7 +80,7 @@ examples/22-rooms/                    the demo
 
 ## Tasks
 
-- [ ] **1. Contract** *(contract)*. Lead. `Layer.area(rect): Layer<F>` and
+- [x] **1. Contract** *(contract)*. Lead. `Layer.area(rect): Layer<F>` and
   `LayerOf<M>` in the maps types; `vec.step(pos, vel, blocked)` and its
   result type declared on `vec`; `ExportResult` gains the inlined assets
   with their sizes and the warnings to print. Empty bodies that throw.
@@ -104,7 +104,8 @@ examples/22-rooms/                    the demo
   its path, its size and that an ogg or mp3 is about a tenth of it. The CLI
   prints the page's size, then the largest assets, then the warnings.
   Owns: `src/export/build.ts`, `src/export/index.ts` (body),
-  `src/export/*.test.ts`, `src/cli.ts`. Waits on: 1.
+  `src/export/*.test.ts`, `src/export/fixtures/`, `src/vite/inline.ts`,
+  `src/cli.ts`. Waits on: 1.
 - [ ] **5. Key fallback.** A key event whose `code` is empty is read by
   `key` as the `code` it has on a US layout: letters, digits, space, arrows,
   Enter, Escape, Tab, Backspace and the modifiers. An event with a `code`
@@ -113,7 +114,7 @@ examples/22-rooms/                    the demo
   Waits on: none.
 - [ ] **6. Demo.** The game under "Demo": tileset, flags, `world.json` and
   `main.ts`, with `sprites.ts` and `maps.ts` as the dev tool writes them.
-  Owns: `examples/22-rooms/`. Waits on: 1.
+  Owns: `examples/22-rooms/`, `pnpm-lock.yaml`. Waits on: 1.
 - [ ] **7. Wire up.** Lead only. `index.ts` exports `LayerOf`; a test that
   draws one room of a map through `area` on the console's screen and checks
   the pixel buffer; the spec's Maps, Positions and vectors, Input and Export
@@ -166,6 +167,11 @@ examples/22-rooms/                    the demo
   be taken up unless a cart's code can be converted without an agent.
 - **Item 9 is punted.** A port wanting Pico-8's small-capital lower case
   waits for custom fonts in the spec's optional enhancements.
+- **Contract.** `LayerOf<M>` is `Exclude<M[keyof M], number>`: a map's
+  only non-number fields are its layers. `vec.step` returns a `Hit`,
+  `{ x, y }` booleans, exported beside `Vec`. `ExportResult` gained
+  `assets` (each `InlinedAsset` a path and its bytes, largest first) and
+  `warnings`, one line each; `BuiltGame` gained `assets`.
 - **Item 10: `key` when `code` is empty.** Read as the code it has on a US
   layout. Real keyboards always send a `code`, so players see no change;
   test drivers that send only `key` work.

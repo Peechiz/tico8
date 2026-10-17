@@ -143,6 +143,19 @@ export interface Layer<F extends string = never> {
    * count.
    */
   overlaps(area: Readonly<Rect>, flag: F): boolean
+
+  /**
+   * A view of part of the layer: the cells a rectangle in pixels covers,
+   * grown to whole cells, as a layer of their own counted from the
+   * rectangle's top left. Drawing it draws only those cells, and reading it
+   * sees only them, with outside reading as empty. `set` writes to this
+   * layer. A map of rooms draws and collides one room with it:
+   *
+   *     const walls = world.walls.area(room)
+   *     walls.draw()
+   *     if (walls.overlaps(hitbox, 'solid')) { ... }
+   */
+  area(area: Readonly<Rect>): Layer<F>
 }
 
 /**
@@ -161,3 +174,10 @@ export type TileMap<L extends string = string, F extends string = never> = {
   readonly width: number
   readonly height: number
 } & { readonly [layer in L]: Layer<F> }
+
+/**
+ * A layer of a map, for a function that takes one:
+ *
+ *     function drawRoom(layer: LayerOf<typeof world>) { ... }
+ */
+export type LayerOf<M> = Exclude<M[keyof M], number>

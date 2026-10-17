@@ -1,9 +1,11 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { projectName } from '../vite/project.ts'
-import { buildGame } from './build.ts'
+import { buildGame, type InlinedAsset } from './build.ts'
 import { typeCheck } from './check.ts'
 import { exportPage } from './page.ts'
+
+export type { InlinedAsset } from './build.ts'
 
 export interface ExportOptions {
   /** The project folder. */
@@ -19,6 +21,10 @@ export interface ExportResult {
   path: string
   /** Its size. */
   bytes: number
+  /** Every asset packed into the page, largest first. */
+  assets: InlinedAsset[]
+  /** What the export thinks the game should know, one line each. */
+  warnings: string[]
 }
 
 /** Thrown by `exportGame` when the type-check finds errors. */
@@ -51,7 +57,7 @@ export async function exportGame(
   const path = resolve(root, options.out ?? join('dist', `${name}.html`))
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, html)
-  return { path, bytes: Buffer.byteLength(html) }
+  return { path, bytes: Buffer.byteLength(html), assets: [], warnings: [] }
 }
 
 /** A size as people read it: `812 B`, `212.4 KB`, `1.3 MB`. */

@@ -6,6 +6,12 @@ export interface Vec {
 
 type ReadonlyVec = Readonly<Vec>
 
+/** Which axes `vec.step` was stopped on. */
+export interface Hit {
+  readonly x: boolean
+  readonly y: boolean
+}
+
 /**
  * Make a vector: plain data, so it can be saved and compared as is.
  * The maths lives on `vec` itself: `vec.add(a, b)`, `vec.len(a)`, ...
@@ -44,5 +50,24 @@ export const vec = Object.assign((x = 0, y = 0): Vec => ({ x, y }), {
     a.x += by.x
     a.y += by.y
     return a
+  },
+
+  /**
+   * Move `pos` by `vel` in place, in whole pixels: x first, then y, one
+   * pixel at a time, asking `blocked` at each floored position. On a hit
+   * `pos` stops on the last free whole pixel of that axis and loses its
+   * fraction there; otherwise it keeps its fraction for the next step.
+   * What a hit means is the game's: stop, bounce, squash.
+   *
+   *     const hit = vec.step(player.pos, player.vel, (at) =>
+   *       walls.overlaps({ ...at, width: 8, height: 8 }, 'solid'))
+   *     if (hit.y) player.vel.y = 0
+   */
+  step: (
+    _pos: Vec,
+    _vel: ReadonlyVec,
+    _blocked: (at: Vec) => boolean,
+  ): Hit => {
+    throw new Error('not yet')
   },
 })

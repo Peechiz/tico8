@@ -190,6 +190,10 @@ export function createMap(
         }
         return false
       },
+
+      area(_area: Readonly<Rect>): Layer<string> {
+        throw new Error('not yet')
+      },
     }
     return Object.defineProperties(layer, size) as typeof layer &
       Pick<Layer, 'columns' | 'rows' | 'width' | 'height'>

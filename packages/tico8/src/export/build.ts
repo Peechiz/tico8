@@ -8,11 +8,21 @@ export interface BuildOptions {
   root: string
 }
 
+/** A file the build packed into the page as a data URL. */
+export interface InlinedAsset {
+  /** Its path from the project folder, `sounds/theme.wav`. */
+  path: string
+  /** Its size before encoding. */
+  bytes: number
+}
+
 export interface BuiltGame {
   /** The game, engine and assets as one module. */
   js: string
   /** Every stylesheet the game imports, joined. */
   css: string
+  /** Every file inlined, in no order. */
+  assets: InlinedAsset[]
 }
 
 /** The module the page loads; the tico8 plugin writes it. */
@@ -77,6 +87,7 @@ export async function buildGame({ root }: BuildOptions): Promise<BuiltGame> {
   }
 
   return {
+    assets: [],
     js: chunks[0].code,
     css: css
       .map((file) =>
