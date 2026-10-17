@@ -84,20 +84,37 @@ export function createMap(
     return Object.hasOwn(flagSets, flag) ? flagSets[flag] : undefined
   }
 
-  /** The size getters a map and its layers share. */
-  const size = {
-    columns: { get: () => columns, enumerable: true },
-    rows: { get: () => rows, enumerable: true },
-    width: { get: () => columns * cell.width, enumerable: true },
-    height: { get: () => rows * cell.height, enumerable: true },
+  /** The size getters of a map, or of anything `columns` by `rows` cells. */
+  function sizeOf(columns: () => number, rows: () => number) {
+    return {
+      columns: { get: columns, enumerable: true },
+      rows: { get: rows, enumerable: true },
+      width: { get: () => columns() * cell.width, enumerable: true },
+      height: { get: () => rows() * cell.height, enumerable: true },
+    }
   }
 
-  function createLayer(cells: Cells): Layer<string> {
+  /**
+   * A layer over a window of cells: the whole of a layer's cells, or an
+   * area of another window. `index` gives where a whole column and row of
+   * the window are in `cells.now`, or -1 outside the window or the cells.
+   */
+  interface Window {
+    columns(): number
+    rows(): number
+    index(column: number, row: number): number
+  }
+
+  function createLayer(cells: Cells, window: Window): Layer<string> {
+    const { index } = window
+
+    function frameAt(c: number, r: number): number {
+      const i = index(c, r)
+      return i < 0 ? EMPTY : cells.now[i]!
+    }
+
     function tile(column: number, row: number): Tile<string> {
-      const c = Math.floor(column)
-      const r = Math.floor(row)
-      if (!(c >= 0 && c < columns && r >= 0 && r < rows)) return emptyTile
-      return tileOf(cells.now[r * columns + c]!)
+      return tileOf(frameAt(Math.floor(column), Math.floor(row)))
     }
 
     const layer = {
@@ -114,12 +131,15 @@ export function createMap(
         const { x0, y0, x1, y1 } = screen.bounds
         // The cells with any pixel inside the clip.
         const c0 = Math.max(0, Math.floor((x0 - left) / cell.width))
-        const c1 = Math.min(columns, Math.ceil((x1 - left) / cell.width))
+        const c1 = Math.min(
+          window.columns(),
+          Math.ceil((x1 - left) / cell.width),
+        )
         const r0 = Math.max(0, Math.floor((y0 - top) / cell.height))
-        const r1 = Math.min(rows, Math.ceil((y1 - top) / cell.height))
+        const r1 = Math.min(window.rows(), Math.ceil((y1 - top) / cell.height))
         for (let r = r0; r < r1; r++) {
           for (let c = c0; c < c1; c++) {
-            const frame = cells.now[r * columns + c]!
+            const frame = frameAt(c, r)
             if (frame === EMPTY) continue
             sheet.draw({
               frame,
@@ -138,20 +158,21 @@ export function createMap(
       },
 
       set(column: number, row: number, frame: number | undefined): void {
-        const c = Math.floor(column)
-        const r = Math.floor(row)
-        if (!(c >= 0 && c < columns && r >= 0 && r < rows)) return
+        const i = index(Math.floor(column), Math.floor(row))
+        if (i < 0) return
         const f = frame === undefined ? EMPTY : Math.floor(frame)
-        cells.now[r * columns + c] = f >= 0 && f <= MAX_FRAME ? f : EMPTY
+        cells.now[i] = f >= 0 && f <= MAX_FRAME ? f : EMPTY
       },
 
       tiles(flag?: string): PlacedTile<string>[] {
         const out: PlacedTile<string>[] = []
         const wanted = flag === undefined ? undefined : framesWith(flag)
         if (flag !== undefined && !wanted) return out
+        const columns = window.columns()
+        const rows = window.rows()
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < columns; c++) {
-            const frame = cells.now[r * columns + c]!
+            const frame = frameAt(c, r)
             if (frame === EMPTY) continue
             if (wanted && !wanted.has(frame)) continue
             out.push(
@@ -175,31 +196,63 @@ export function createMap(
         // The cells the rectangle covers any part of.
         const c0 = Math.max(0, Math.floor(area.x / cell.width))
         const c1 = Math.min(
-          columns,
+          window.columns(),
           Math.ceil((area.x + area.width) / cell.width),
         )
         const r0 = Math.max(0, Math.floor(area.y / cell.height))
         const r1 = Math.min(
-          rows,
+          window.rows(),
           Math.ceil((area.y + area.height) / cell.height),
         )
         for (let r = r0; r < r1; r++) {
           for (let c = c0; c < c1; c++) {
-            if (wanted.has(cells.now[r * columns + c]!)) return true
+            const i = index(c, r)
+            if (i >= 0 && wanted.has(cells.now[i]!)) return true
           }
         }
         return false
       },
 
-      area(_area: Readonly<Rect>): Layer<string> {
-        throw new Error('not yet')
+      area(area: Readonly<Rect>): Layer<string> {
+        // The cells the rectangle covers any part of, grown to whole cells.
+        const left = Math.floor(area.x / cell.width)
+        const top = Math.floor(area.y / cell.height)
+        const columns = Math.max(
+          0,
+          Math.ceil((area.x + area.width) / cell.width) - left,
+        )
+        const rows = Math.max(
+          0,
+          Math.ceil((area.y + area.height) / cell.height) - top,
+        )
+        return createLayer(cells, {
+          columns: () => columns,
+          rows: () => rows,
+          index: (c, r) =>
+            c >= 0 && c < columns && r >= 0 && r < rows
+              ? index(left + c, top + r)
+              : -1,
+        })
       },
     }
-    return Object.defineProperties(layer, size) as typeof layer &
-      Pick<Layer, 'columns' | 'rows' | 'width' | 'height'>
+    return Object.defineProperties(
+      layer,
+      sizeOf(window.columns, window.rows),
+    ) as typeof layer & Pick<Layer, 'columns' | 'rows' | 'width' | 'height'>
   }
 
-  const map = Object.defineProperties({}, size) as TileMap<string, string>
+  /** The whole of a layer's cells, as big as the map is now. */
+  const whole: Window = {
+    columns: () => columns,
+    rows: () => rows,
+    index: (c, r) =>
+      c >= 0 && c < columns && r >= 0 && r < rows ? r * columns + c : -1,
+  }
+
+  const map = Object.defineProperties(
+    {},
+    sizeOf(whole.columns, whole.rows),
+  ) as TileMap<string, string>
 
   function setFlags(next: FlagData): void {
     flagSets = next
@@ -225,7 +278,7 @@ export function createMap(
         cells = { now: given, given }
         layers.set(name, cells)
         Object.defineProperty(map, name, {
-          value: createLayer(cells),
+          value: createLayer(cells, whole),
           enumerable: true,
         })
       }

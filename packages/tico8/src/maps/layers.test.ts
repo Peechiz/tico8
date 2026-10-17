@@ -429,6 +429,176 @@ describe('overlaps', () => {
   })
 })
 
+describe('area', () => {
+  it('is the cells a rectangle covers, grown to whole cells', () => {
+    const { map } = setup()
+    // Pixels 3 to 6 across and 1 to 3 down: columns 1 to 3 of rows 0 and 1.
+    const view = map.walls!.area({ x: 3, y: 1, width: 4, height: 3 })
+    expect([view.columns, view.rows, view.width, view.height]).toEqual([
+      3, 2, 6, 4,
+    ])
+    expect(view.tile(0, 0).frame).toBe(1)
+    expect(view.tile(2, 1).frame).toBe(2)
+    const none = map.walls!.area({ x: 2, y: 2, width: 0, height: -2 })
+    expect([none.columns, none.rows]).toEqual([0, 0])
+    expect(none.tiles()).toEqual([])
+  })
+
+  it('draws only its cells, its top left at the position', () => {
+    const { screen, map } = setup()
+    const view = map.walls!.area({ x: 0, y: 0, width: 4, height: 4 })
+    view.draw(4, 2)
+    expect(toPicture(screen)).toBe(
+      picture(`
+      ........
+      ........
+      ....2222
+      ....2222
+      ....22..
+      ....22..
+    `),
+    )
+  })
+
+  it('draws nothing of the layer past its edges, nor past the layer', () => {
+    const { screen, map } = setup()
+    // Columns 2 to 5 of rows 1 to 3; the layer ends at column 3 and row 2.
+    const view = map.walls!.area({ x: 4, y: 2, width: 8, height: 6 })
+    expect([view.columns, view.rows]).toEqual([4, 3])
+    screen.clear(7)
+    view.draw()
+    expect(toPicture(screen)).toBe(
+      picture(`
+      77337777
+      77337777
+      77777777
+      77777777
+      77777777
+      77777777
+    `),
+    )
+  })
+
+  it('costs what is on screen, however big the area', () => {
+    const { screen, sheet, loadable, map } = setup()
+    loadable.setData({
+      tiles: 'tiles',
+      columns: 1000,
+      rows: 1000,
+      layers: { walls: new Int16Array(1000 * 1000).fill(0) },
+    })
+    const view = map.walls!.area({ x: 200, y: 200, width: 1000, height: 1000 })
+    const draw = vi.spyOn(sheet, 'draw')
+    screen.withCamera(401, 51, () => view.draw())
+    expect(draw).toHaveBeenCalledTimes(20)
+  })
+
+  it('reads its cells from its top left, and outside it as empty', () => {
+    const { map } = setup()
+    // Columns 1 to 3 of rows 0 and 1.
+    const view = map.walls!.area({ x: 2, y: 0, width: 6, height: 4 })
+    expect(view.tile(0, 0)).toEqual({ frame: 1, solid: true, spawn: false })
+    expect(view.tileAt(4.5, 2)).toEqual({ frame: 2, solid: true, spawn: false })
+    expect(view.tileAt({ x: 0, y: 3 }).frame).toBeUndefined()
+    // Column 0 and row 2 of the layer hold tiles, but lie outside the view.
+    for (const [c, r] of [
+      [-1, 0],
+      [-1, 1],
+      [0, 2],
+    ] as const) {
+      expect(view.tile(c, r)).toEqual({
+        frame: undefined,
+        solid: false,
+        spawn: false,
+      })
+    }
+  })
+
+  it('overlaps only what is inside it', () => {
+    const { map } = setup()
+    // Columns 1 and 2 of rows 1 and 2: all empty, walls on either side.
+    const view = map.walls!.area({ x: 2, y: 2, width: 4, height: 4 })
+    const box = { x: -1, y: 0, width: 6, height: 2 }
+    expect(view.overlaps(box, 'solid')).toBe(false)
+    // The same box on the layer covers the walls just past the view.
+    expect(map.walls!.overlaps({ ...box, x: 1, y: 2 }, 'solid')).toBe(true)
+    const top = map.walls!.area({ x: 0, y: 0, width: 8, height: 2 })
+    expect(top.overlaps({ x: 0, y: 1, width: 2, height: 4 }, 'solid')).toBe(
+      true,
+    )
+    expect(top.overlaps({ x: 0, y: 2, width: 2, height: 4 }, 'solid')).toBe(
+      false,
+    )
+  })
+
+  it('walks its tiles with positions counted from its top left', () => {
+    const { map } = setup()
+    const view = map.markers!.area({ x: 2, y: 2, width: 4, height: 4 })
+    expect(
+      view.tiles('spawn').map((t) => [t.column, t.row, t.x, t.y, t.frame]),
+    ).toEqual([
+      [0, 0, 0, 0, 3],
+      [1, 1, 2, 2, 3],
+    ])
+    expect(
+      map.markers!.area({ x: 0, y: 0, width: 2, height: 6 }).tiles(),
+    ).toEqual([])
+  })
+
+  it('sets the cells of the layer under it, and ignores outside it', () => {
+    const { map } = setup()
+    const { walls } = map
+    const view = walls!.area({ x: 2, y: 2, width: 6, height: 2 })
+    view.set(0, 0, 2)
+    view.set(2, 0, undefined)
+    view.set(-1, 0, 3)
+    view.set(0, 1, 3)
+    expect(walls!.tile(1, 1).frame).toBe(2)
+    expect(walls!.tile(3, 1).frame).toBeUndefined()
+    expect(walls!.tile(0, 1).frame).toBe(1)
+    expect(walls!.tile(1, 2).frame).toBeUndefined()
+    expect(view.tile(0, 0).frame).toBe(2)
+  })
+
+  it('makes a view of a view, which stays inside the first', () => {
+    const { map } = setup()
+    const { walls } = map
+    // Columns 1 to 3 of rows 0 to 2, then columns 1 to 3 of that from row 1.
+    const outer = walls!.area({ x: 2, y: 0, width: 6, height: 6 })
+    const inner = outer.area({ x: 2, y: 2, width: 6, height: 4 })
+    expect([inner.columns, inner.rows]).toEqual([3, 2])
+    expect(inner.tile(1, 0).frame).toBe(2)
+    // Layer column 4 does not exist; layer column 0 is outside both.
+    expect(inner.tile(2, 0).frame).toBeUndefined()
+    expect(inner.tile(-2, 1).frame).toBeUndefined()
+    inner.set(0, 1, 3)
+    expect(walls!.tile(2, 2).frame).toBe(3)
+    inner.set(-1, 0, 3)
+    expect(walls!.tile(1, 1).frame).toBeUndefined()
+  })
+
+  it('stays live when the data and flags are replaced', () => {
+    const { loadable, map } = setup()
+    const view = map.walls!.area({ x: 2, y: 0, width: 4, height: 2 })
+    loadable.setData({
+      tiles: 'tiles',
+      columns: 4,
+      rows: 1,
+      layers: { walls: Int16Array.from([_, 3, 0, _]) },
+    })
+    expect(view.tile(0, 0).frame).toBe(3)
+    expect(view.tile(1, 0).frame).toBe(0)
+    expect(view.overlaps({ x: 2, y: 0, width: 2, height: 2 }, 'solid')).toBe(
+      false,
+    )
+    loadable.setFlags({ solid: new Set([0]) })
+    expect(view.overlaps({ x: 2, y: 0, width: 2, height: 2 }, 'solid')).toBe(
+      true,
+    )
+    expect(view.tile(1, 0)).toEqual({ frame: 0, solid: true })
+  })
+})
+
 describe('setData and setFlags on a map already held', () => {
   it('keeps the map and its layers, with the new cells and size', () => {
     const { screen, loadable, map } = setup()
