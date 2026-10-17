@@ -146,4 +146,47 @@ describe('attachKeyboard', () => {
     fire('keydown', key('KeyZ'))
     expect(calls).toEqual([])
   })
+
+  it('reads a key with no code by its key on a US layout', () => {
+    const { pad, calls } = fakePad(['KeyZ', 'Space', 'ArrowDown'])
+    const { win, fire } = fakeWindow()
+    attachKeyboard(win, pad)
+    const down = key('', { key: 'z' })
+    fire('keydown', down)
+    fire('keyup', key('', { key: 'z' }))
+    fire('keydown', key('', { key: 'Z' }))
+    fire('keyup', key('', { key: 'Z' }))
+    fire('keydown', key('', { key: ' ' }))
+    fire('keydown', { key: 'ArrowDown', preventDefault() {} })
+    fire('keydown', key('', { key: 'Unidentified' }))
+    expect(down.prevented).toBe(true)
+    expect(calls).toEqual([
+      'keyboard KeyZ down',
+      'keyboard KeyZ up',
+      'keyboard KeyZ down',
+      'keyboard KeyZ up',
+      'keyboard Space down',
+      'keyboard ArrowDown down',
+    ])
+  })
+
+  it('reads a modifier with no code as its left key', () => {
+    const { pad, calls } = fakePad()
+    const { win, fire } = fakeWindow()
+    attachKeyboard(win, pad)
+    const event = key('', { key: 'Control', ctrlKey: true })
+    fire('keydown', event)
+    fire('keydown', key('', { key: 'z', ctrlKey: true }))
+    expect(event.prevented).toBe(true)
+    expect(calls).toEqual(['keyboard ControlLeft down'])
+  })
+
+  it('reads an event with a code by its code, not its key', () => {
+    const { pad, calls } = fakePad()
+    const { win, fire } = fakeWindow()
+    attachKeyboard(win, pad)
+    fire('keydown', key('KeyZ', { key: 'y' }))
+    fire('keydown', key('KeyY', { key: 'z' }))
+    expect(calls).toEqual(['keyboard KeyZ down'])
+  })
 })
