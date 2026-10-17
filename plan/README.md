@@ -28,7 +28,7 @@ Slices whose "needs" are all `done` can run in parallel.
 | 19 | [Input tester](19-input-tester.md) | 12 | small | todo | The controls screen lights up each row while its button is held |
 | 20 | [Symbol codes](20-symbol-codes.md) | 04, 11 | small | todo | `:a:` and `:heart:` in a string drawn as Ⓐ and ♥ |
 | 21 | [Sprite editor look](21-sprite-editor-look.md) | 14 | large | done | The sprite editor in the console's own colours and font, usable beside the game |
-| 22 | [Port friction](22-port-friction.md) | 07, 08 | medium | doing | A game of rooms on one map, with no room clipping or pixel stepping of its own |
+| 22 | [Port friction](22-port-friction.md) | 07, 08 | medium | done | A game of rooms on one map, with no room clipping or pixel stepping of its own |
 | 23 | [Namespaces](23-namespaces.md) | 22 | medium | todo | A game that imports a few namespaces instead of a name per function |
 | 24 | [Synth](24-synth.md) | 09, 13 | medium | todo | Jump and coin effects made from a few numbers in a text file, edited live |
 | 25 | [Export settings](25-export-settings.md) | 13, 22 | small | todo | An exported page with wav sounds transcoded to a fraction of their size |

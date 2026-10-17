@@ -261,7 +261,8 @@ if (input.a.pressed) {
   cells a rectangle in pixels covers, grown to whole cells, counted from
   its top left. Drawing it draws only that area; `tile`, `tileAt`,
   `overlaps` and `tiles` see only that area, and outside it reads as empty;
-  `set` writes to the layer under it. A map of rooms, one screen each, draws
+  `set` writes to the layer under it. A view's size is fixed when it is
+  made, and a view of a view stays inside the first. A map of rooms, one screen each, draws
   and collides one room with `world.ground.area(room)`.
 - **`LayerOf<typeof world>`** names a layer of a map, for a function that
   takes one.
@@ -330,7 +331,7 @@ const [start] = room1.markers.tiles('spawn')
   button brings its default key with it. Keys are named as the browser
   names them, by place on the keyboard: `'Space'`, `'KeyK'`.
   A key event with no `code`, as some test drivers send, is read by its
-  `key` as the place it has on a US keyboard.
+  `key` as the place it has on a US keyboard (Meta aside).
 - **Action names are typed by inference.** `defineConfig` hands back the
   config with the game's `input` on it; the config file exports that and
   the game imports it from there. Nothing is generated. A game that
@@ -445,7 +446,8 @@ export function draw() {
   pixel at a time, asking `blocked(at)` at each floored position. On a hit
   `pos` stops flush on that axis and loses its fraction; otherwise it keeps
   the fraction for the next step. It returns `{ x, y }`, which axes hit.
-  What a hit means (stop, bounce) is the game's.
+  What a hit means (stop, bounce) is the game's. It never asks about the
+  pixel it starts on, so a body already in a wall is not pushed out.
 
 ```ts
 const player = { pos: vec(20, 60), vel: vec(1, 0) }
@@ -822,9 +824,10 @@ export function pause() {
 - **Assets go in as data URLs.** Each sheet and sound file becomes a
   base64 `data:` URL in the code, so the loaders fetch them as they do in
   dev. Maps and flags are already part of the code.
-- **It warns about size.** After the page's size it lists the largest
-  assets, and names each wav with its size: an ogg or mp3 is about a tenth
-  of it.
+- **It warns about size.** Under the page's size it lists the five
+  largest sheets and sounds, and warns about every wav, on stderr:
+  `sounds/music.wav is 10.8 MB of uncompressed audio: an ogg or mp3 is
+  about a tenth of that`.
 - **It type-checks first** and stops on an error; `--no-check` skips the
   check. TypeScript comes with tico8. A `tsconfig.json` in the project
   folder is used when there is one, tico8's own settings otherwise (one

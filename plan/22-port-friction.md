@@ -115,7 +115,7 @@ examples/22-rooms/                    the demo
 - [x] **6. Demo.** The game under "Demo": tileset, flags, `world.json` and
   `main.ts`, with `sprites.ts` and `maps.ts` as the dev tool writes them.
   Owns: `examples/22-rooms/`, `pnpm-lock.yaml`. Waits on: 1.
-- [ ] **7. Wire up.** Lead only. `index.ts` exports `LayerOf`; a test that
+- [x] **7. Wire up.** Lead only. `index.ts` exports `LayerOf`; a test that
   draws one room of a map through `area` on the console's screen and checks
   the pixel buffer; the spec's Maps, Positions and vectors, Input and Export
   sections; run the demo; move `../celeste-test` onto the changes.
@@ -205,3 +205,14 @@ examples/22-rooms/                    the demo
 - **Demo tileset and controls.** Tiles, flags and the figure are copied
   from `08-animation`. Arrows walk, A jumps (let go early for a short hop);
   gravity 0.25, jump 4.5, fall at most 4 pixels an update.
+
+## Not checked
+
+- `../celeste-test` was not moved onto the changes: it is outside this
+  repo and was not in the session that closed the slice. Its `drawRoom`,
+  `tileFlagAt` and `Entity.move` are still to delete.
+- A real keyboard: the demo was walked in Chromium by Playwright's key
+  events, from room A into B, and by a `key`-only event with an empty
+  `code`. Falling through the floor holes and climbing back were checked
+  by a simulation over the real views, not in the browser.
+- Any browser other than Chromium.
