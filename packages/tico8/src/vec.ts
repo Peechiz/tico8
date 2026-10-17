@@ -12,6 +12,30 @@ export interface Hit {
   readonly y: boolean
 }
 
+/** One axis of `vec.step`: walk the floored position toward the target. */
+function stepAxis(
+  pos: Vec,
+  axis: 'x' | 'y',
+  by: number,
+  blocked: (at: Vec) => boolean,
+): boolean {
+  const target = pos[axis] + by
+  const from = Math.floor(pos[axis])
+  const to = Math.floor(target)
+  const dir = Math.sign(to - from)
+  for (let at = from; at !== to; ) {
+    at += dir
+    const probe = { x: Math.floor(pos.x), y: Math.floor(pos.y) }
+    probe[axis] = at
+    if (blocked(probe)) {
+      pos[axis] = at - dir
+      return true
+    }
+  }
+  pos[axis] = target
+  return false
+}
+
 /**
  * Make a vector: plain data, so it can be saved and compared as is.
  * The maths lives on `vec` itself: `vec.add(a, b)`, `vec.len(a)`, ...
@@ -63,11 +87,9 @@ export const vec = Object.assign((x = 0, y = 0): Vec => ({ x, y }), {
    *       walls.overlaps({ ...at, width: 8, height: 8 }, 'solid'))
    *     if (hit.y) player.vel.y = 0
    */
-  step: (
-    _pos: Vec,
-    _vel: ReadonlyVec,
-    _blocked: (at: Vec) => boolean,
-  ): Hit => {
-    throw new Error('not yet')
+  step: (pos: Vec, vel: ReadonlyVec, blocked: (at: Vec) => boolean): Hit => {
+    const x = stepAxis(pos, 'x', vel.x, blocked)
+    const y = stepAxis(pos, 'y', vel.y, blocked)
+    return { x, y }
   },
 })
